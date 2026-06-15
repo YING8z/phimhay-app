@@ -1,0 +1,189 @@
+import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:phimhay_app/config/theme.dart';
+import 'package:phimhay_app/models/movie.dart';
+
+class MovieCard extends StatelessWidget {
+  final Movie movie;
+  final int rank;
+  final VoidCallback? onTap;
+
+  const MovieCard({
+    super.key,
+    required this.movie,
+    this.rank = 0,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        // .m-movie-card: width 132px
+        width: 132,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Poster container — .m-movie-poster-wrap
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.bgSurface,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    // Poster image — aspect-ratio: 2/3
+                    AspectRatio(
+                      aspectRatio: 2 / 3,
+                      child: CachedNetworkImage(
+                        imageUrl: movie.thumbUrl ?? movie.posterUrl ?? '',
+                        fit: BoxFit.cover,
+                        memCacheWidth: 280,
+                        cacheKey: '${movie.slug}_${movie.id}_thumb', // bust cache khi đổi URL
+                        placeholder: (_, __) => Container(color: AppTheme.bgSurface),
+                        errorWidget: (_, __, ___) => Container(
+                          color: AppTheme.bgSurface,
+                          child: const Icon(Icons.movie_outlined, color: AppTheme.textMuted, size: 32),
+                        ),
+                      ),
+                    ),
+                    // Gradient scrim — .m-movie-poster-wrap::after
+                    Positioned(
+                      bottom: 0, left: 0, right: 0,
+                      child: Container(
+                        height: 72,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Color(0x99000000)],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Rank badge — .m-movie-rank (top-left)
+                    if (rank > 0)
+                      Positioned(
+                        top: 6, left: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$rank',
+                            style: const TextStyle(color: Color(0xFF1A1100), fontSize: 12, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    // Quality badge — .m-movie-quality (top-right)
+                    if ((movie.quality ?? '').isNotEmpty)
+                      Positioned(
+                        top: 7, right: 7,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            // rgba(245,197,24,.9)
+                            color: const Color(0xE6F5C518),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            movie.quality!.toUpperCase(),
+                            style: const TextStyle(color: Color(0xFF1A1100), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                          ),
+                        ),
+                      ),
+                    // Episode + lang badges — .m-movie-badges (bottom-left)
+                    Positioned(
+                      bottom: 7, left: 7, right: 7,
+                      child: Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          if ((movie.episodeCurrent ?? '').isNotEmpty)
+                            _BadgeChip(
+                              label: movie.episodeCurrent!,
+                              // .m-badge--lt style (yellow tint)
+                              bgColor: const Color(0xD5141423),
+                              textColor: const Color(0xFFFFD580),
+                              borderColor: const Color(0x59F5C518),
+                            ),
+                          if ((movie.lang ?? '').isNotEmpty)
+                            _BadgeChip(
+                              label: movie.lang!,
+                              // .m-badge--sub style (blue tint)
+                              bgColor: const Color(0xD5141423),
+                              textColor: const Color(0xFFCDD5FF),
+                              borderColor: const Color(0x59828CFF),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Title — .m-movie-name
+            Text(
+              movie.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
+            ),
+            // Origin name — .m-movie-origin
+            if ((movie.originName ?? '').isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  movie.originName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BadgeChip extends StatelessWidget {
+  final String label;
+  final Color bgColor;
+  final Color textColor;
+  final Color borderColor;
+
+  const _BadgeChip({
+    required this.label,
+    required this.bgColor,
+    required this.textColor,
+    required this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: textColor, fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+      ),
+    );
+  }
+}
