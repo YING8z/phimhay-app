@@ -1,0 +1,62 @@
+name: Upload IPA to Server
+
+on:
+  workflow_run:
+    workflows: ["Build iOS IPA"]
+    types:
+      - completed
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Upload to Server via FTP
+        if: ${{ secrets.FTP_SERVER != '' }}
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: /Downloads/
+          dangerous-clean-slate: false
+
+      - name: Upload to Server via SFTP
+        if: ${{ secrets.SFTP_HOST != '' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT || 22 }}
+          source: "*.ipa"
+          target: "/var/www/html/Downloads/"
+
+      - name: Upload via Custom API
+        if: ${{ secrets.UPLOAD_API_URL != '' }}
+        run: |
+          for file in *.ipa; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file to API..."
+              curl -X POST \
+                -H "Authorization: Bearer ${{ secrets.API_TOKEN }}" \
+                -F "file=@$file" \
+                "${{ secrets.UPLOAD_API_URL }}"
+            fi
+          done
+
+      - name: Notify upload success
+        if: success()
+        run: echo "IPA uploaded successfully to server!"
+
+      - name: Notify upload failure
+        if: failure()
+        run: echo "Failed to upload IPA to server!"

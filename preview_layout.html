@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview Layout - EnsMovie</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0D0F14;
+    color: #F0F0F0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    padding: 48px 16px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: #F0F0F0;
+  }
+  .header-left p {
+    font-size: 12px;
+    color: #9AA0B4;
+    margin-top: 2px;
+  }
+  .header-icons {
+    display: flex;
+    gap: 12px;
+  }
+  .header-icons span {
+    width: 36px;
+    height: 36px;
+    background: #1E2130;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    overflow-x: auto;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: #1E2130;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #9AA0B4;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    color: #F0F0F0;
+  }
+
+  /* ── Coverflow Carousel ── */
+  .carousel-section {
+    position: relative;
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0 0;
+    perspective: 1000px;
+    overflow: hidden;
+  }
+  .carousel-track {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  .carousel-card {
+    position: absolute;
+    width: 140px;
+    height: 210px;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border: 2px solid rgba(255,255,255,0.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .carousel-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Center card */
+  .carousel-card.center {
+    width: 170px;
+    height: 255px;
+    transform: translateX(0) translateZ(0) rotateY(0) scale(1);
+    border-color: rgba(255,255,255,0.7);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    z-index: 3;
+  }
+
+  /* Left card */
+  .carousel-card.left {
+    transform: translateX(-160px) translateZ(-80px) rotateY(25deg) scale(0.75);
+    opacity: 0.6;
+    border-color: rgba(255,255,255,0.08);
+    z-index: 1;
+  }
+
+  /* Right card */
+  .carousel-card.right {
+    transform: translateX(160px) translateZ(-80px) rotateY(-25deg) scale(0.75);
+    opacity: 0.6;
+    border-color: rgba(255,255,255,0.08);
+    z-index: 1;
+  }
+
+  /* Far left/right */
+  .carousel-card.far-left {
+    transform: translateX(-280px) translateZ(-160px) rotateY(35deg) scale(0.55);
+    opacity: 0.3;
+    z-index: 0;
+  }
+  .carousel-card.far-right {
+    transform: translateX(280px) translateZ(-160px) rotateY(-35deg) scale(0.55);
+    opacity: 0.3;
+    z-index: 0;
+  }
+
+  /* Dots */
+  .dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 0 8px;
+  }
+  .dot {
+    height: 6px;
+    border-radius: 999px;
+    background: #1E2130;
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: all 0.3s;
+  }
+  .dot.active {
+    width: 24px;
+    background: #F5C518;
+    border-color: #F5C518;
+  }
+  .dot:not(.active) { width: 8px; }
+
+  /* ── Featured Info ── */
+  .featured-info {
+    padding: 8px 24px 16px;
+    text-align: center;
+  }
+  .featured-title {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+    color: #F0F0F0;
+  }
+  .featured-origin {
+    font-size: 14px;
+    color: #9AA0B4;
+    margin-bottom: 16px;
+  }
+
+  /* Buttons - Rounded Rectangle */
+  .featured-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    min-width: 130px;
+  }
+  .btn-primary {
+    background: linear-gradient(180deg, #E8C547, #F5C518);
+    color: #0D0F14;
+    box-shadow: 0 6px 16px rgba(245,197,24,0.2);
+  }
+  .btn-secondary {
+    background: #1E2130;
+    color: #F0F0F0;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Pills - Rounded Rectangle */
+  .pills {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .pill {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #1E2130;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #9AA0B4;
+  }
+  .pill.gold {
+    background: rgba(245,197,24,0.15);
+    border-color: rgba(245,197,24,0.4);
+    color: #F5C518;
+  }
+
+  /* Details */
+  .featured-details {
+    font-size: 13px;
+    color: #9AA0B4;
+    margin-bottom: 6px;
+  }
+
+  /* Description */
+  .featured-desc {
+    font-size: 13px;
+    color: #5C627A;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── Continue Watching ── */
+  .continue-section {
+    padding: 16px 16px 8px;
+  }
+  .continue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .continue-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #F0F0F0;
+  }
+  .continue-header span {
+    font-size: 12px;
+    color: #9AA0B4;
+    cursor: pointer;
+  }
+  .continue-list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .continue-list::-webkit-scrollbar { display: none; }
+  .continue-card {
+    width: 100px;
+    flex-shrink: 0;
+  }
+  .continue-card-img {
+    width: 100%;
+    height: 140px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .continue-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .continue-card-title {
+    font-size: 11px;
+    color: #F0F0F0;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .continue-card-ep {
+    font-size: 10px;
+    color: #9AA0B4;
+    margin-top: 2px;
+  }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1E2130;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0 20px;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #5C627A;
+    cursor: pointer;
+  }
+  .nav-item.active {
+    color: #F5C518;
+  }
+  .nav-item .nav-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .nav-item.active .nav-icon {
+    background: #F5C518;
+    color: #0D0F14;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    margin-top: -16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>EnsMovie</h1>
+    <p>Phim của nhà làmmm</p>
+  </div>
+  <div class="header-icons">
+    <span>🔔</span>
+    <span>⚙️</span>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab">Đề xuất</div>
+  <div class="tab">Phim bộ</div>
+  <div class="tab active">Phim lẻ</div>
+  <div class="tab">Thể loại ▾</div>
+</div>
+
+<!-- Coverflow Carousel -->
+<div class="carousel-section">
+  <div class="carousel-track">
+    <div class="carousel-card far-left">
+      <img src="https://img.phimhaymoi.com/covers/2024/07/15/abc123.jpg" alt="">
+    </div>
+    <div class="carousel-card left">
+      <img src="https://img.phimhaymoi.com/covers/2024/08/23/90a50f4717758052e9ed2a8af4a59c34.jpg" alt="">
+    </div>
+    <div class="carousel-card center">
+      <img src="https://img.phimhaymoi.com/covers/2024/10/29/c939f28bf698a61a53ee20633a63e39c.jpg" alt="">
+    </div>
+    <div class="carousel-card right">
+      <img src="https://img.phimhaymoi.com/covers/2024/09/18/3e4df9b85e5c8da8f4a90d060e9c2e37.jpg" alt="">
+    </div>
+    <div class="carousel-card far-right">
+      <img src="https://img.phimhaymoi.com/covers/2024/11/05/xyz789.jpg" alt="">
+    </div>
+  </div>
+</div>
+
+<!-- Dots -->
+<div class="dots">
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot active"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+</div>
+
+<!-- Featured Info -->
+<div class="featured-info">
+  <div class="featured-title">Những Người Đưa Tin 2</div>
+  <div class="featured-origin">Messengers 2: The Scarecrow</div>
+  <div class="featured-btns">
+    <button class="btn btn-primary">▶ Xem Phim</button>
+    <button class="btn btn-secondary">ℹ Thông tin</button>
+  </div>
+  <div class="pills">
+    <span class="pill gold">IMDb 5.4</span>
+    <span class="pill">FHD</span>
+    <span class="pill">2009</span>
+    <span class="pill">Full</span>
+  </div>
+  <div class="featured-details">94 phút · Việt Sub · Kinh Dị, Chính Kịch</div>
+  <div class="featured-desc">Khám phá Messengers 2: The Scarecrow cùng thông tin phim và...</div>
+</div>
+
+<!-- Continue Watching -->
+<div class="continue-section">
+  <div class="continue-header">
+    <h3>Xem tiếp của bạn</h3>
+    <span>Xóa tất cả</span>
+  </div>
+  <div class="continue-list">
+    <div class="continue-card">
+      <div class="continue-card-img">
+        <img src="https://img.phimhaymoi.com/covers/2024/08/23/90a50f4717758052e9ed2a8af4a59c34.jpg" alt="">
+      </div>
+      <div class="continue-card-title">Tên Phim Mẫu</div>
+      <div class="continue-card-ep">Tập 5</div>
+    </div>
+    <div class="continue-card">
+      <div class="continue-card-img">
+        <img src="https://img.phimhaymoi.com/covers/2024/09/18/3e4df9b85e5c8da8f4a90d060e9c2e37.jpg" alt="">
+      </div>
+      <div class="continue-card-title">Phim Khác</div>
+      <div class="continue-card-ep">Tập 12</div>
+    </div>
+    <div class="continue-card">
+      <div class="continue-card-img">
+        <img src="https://img.phimhaymoi.com/covers/2024/10/29/c939f28bf698a61a53ee20633a63e39c.jpg" alt="">
+      </div>
+      <div class="continue-card-title">Messengers 2</div>
+      <div class="continue-card-ep">Full</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item active">
+    <div class="nav-icon">🏠</div>
+    <span>Trang chủ</span>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">🔍</div>
+    <span>Duyệt tìm</span>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">📅</div>
+    <span>Lịch chiếu</span>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">👤</div>
+    <span>Tài khoản</span>
+  </div>
+</div>
+
+<div style="height: 80px;"></div>
+
+</body>
+</html>

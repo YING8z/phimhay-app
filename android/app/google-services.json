@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "389851196491",
+    "project_id": "xiaofilmnhe",
+    "storage_bucket": "xiaofilmnhe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:389851196491:android:0ad4c92aa90170886bf1ce",
+        "android_client_info": {
+          "package_name": "com.phimhay.phimhay_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0tx5EUAxf5Tgbp5LEHiCvXtHGnOazqxQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
