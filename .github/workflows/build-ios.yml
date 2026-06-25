@@ -25,6 +25,9 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Disable Swift Package Manager
+        run: flutter config --no-enable-swift-package-manager
+
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -58,27 +61,6 @@ jobs:
         run: |
           PBXPROJ="ios/Runner.xcodeproj/project.pbxproj"
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = .*/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/" "$PBXPROJ"
-
-      - name: Inject Swift Concurrency linker flag
-        run: |
-          python3 << 'PYEOF'
-          pbxproj = "ios/Runner.xcodeproj/project.pbxproj"
-          with open(pbxproj) as f:
-              content = f.read()
-          if "-lswift_Concurrency" not in content:
-              old = "ENABLE_BITCODE = NO;"
-              new = ('ENABLE_BITCODE = NO;\n'
-                     '\t\t\t\tOTHER_LDFLAGS = (\n'
-                     '\t\t\t\t\t"$(inherited)",\n'
-                     '\t\t\t\t\t"-lswift_Concurrency",\n'
-                     '\t\t\t\t);')
-              content = content.replace(old, new)
-              with open(pbxproj, "w") as f:
-                  f.write(content)
-              print("OK: injected -lswift_Concurrency")
-          else:
-              print("OK: flag already present")
-          PYEOF
 
       - name: Install dependencies
         run: flutter pub get
