@@ -75,6 +75,21 @@ jobs:
           fi
           cd ..
 
+      - name: Inject Swift Concurrency linker flags
+        run: |
+          XCCONFIG_DIR="ios/Pods/Target Support Files/Pods-Runner"
+          for f in "$XCCONFIG_DIR"/*.xcconfig; do
+            if [ -f "$f" ] && ! grep -q "lswift_Concurrency" "$f"; then
+              echo 'OTHER_LDFLAGS = $(inherited) -lswift_Concurrency' >> "$f"
+              echo "Patched: $f"
+            fi
+          done
+          PBXPROJ="ios/Runner.xcodeproj/project.pbxproj"
+          if ! grep -q "lswift_Concurrency" "$PBXPROJ"; then
+            sed -i '' 's/ENABLE_BITCODE = NO;/ENABLE_BITCODE = NO;\n\t\t\t\tOTHER_LDFLAGS = (\n\t\t\t\t\t"$(inherited)",\n\t\t\t\t\t"-lswift_Concurrency",\n\t\t\t\t);/' "$PBXPROJ"
+            echo "Patched project.pbxproj"
+          fi
+
       - name: Build iOS
         run: flutter build ios --release --no-codesign
 
