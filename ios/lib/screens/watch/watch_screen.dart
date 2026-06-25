@@ -241,43 +241,96 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   void _checkAdZone(int positionSec) {
     if (_adSkipping || _currentUrl.isEmpty || _adMode) return;
 
-    // ★ PRIMARY: Use m3u8 parsed ad zones (most accurate)
+    // ★ 1. Check parsed m3u8 ad zones (primary)
     if (_m3u8Result != null && _m3u8Result!.hasAds) {
       final adZone = _m3u8Result!.adZoneAt(positionSec.toDouble());
       if (adZone != null) {
         debugPrint('M3U8 AD HIT: $adZone at ${positionSec}s');
-        _showAdOverlay(adZone);
+        _skipAdZone(adZone.endTime.toInt() + 2); // +2s overshoot
         return;
+      }
+
+      // ★ Look-ahead: nếu position sắp vào ad zone (< 3s) → mute trước
+      final nextAd = _m3u8Result!.nextAdAfter(positionSec.toDouble());
+      if (nextAd != null && nextAd.startTime - positionSec <= 3 && !_adMuted) {
+        debugPrint('AD LOOK-AHEAD: mute at ${positionSec}s, ad starts at ${nextAd.startTime}s');
+        _muteForAdSkip();
       }
     }
 
-    // FALLBACK: Use API ad markers
+    // ★ 2. Detect position jump (server-side ad injection)
+    if (_lastPositionForJump >= 0 && !_adSkipping) {
+      final jump = positionSec - _lastPositionForJump;
+      // Jump backward > 5s OR jump forward > 15s → possible ad injection
+      if (jump < -5 || jump > 15) {
+        debugPrint('POSITION JUMP: ${_lastPositionForJump}s → ${positionSec}s (delta: ${jump}s)');
+        // Nếu jump backward nhiều → có thể ad vừa xong, seek tới vị trí hợp lý
+        if (jump < -10) {
+          _skipAdZone(positionSec.abs() + 2);
+        }
+      }
+    }
+    _lastPositionForJump = positionSec;
+
+    // ★ 3. Fallback: API ad markers
     if (_adMarkers.isEmpty) return;
     for (final ad in _adMarkers) {
       final start = (ad['start_time'] as int?) ?? 0;
       if (positionSec >= start - 3 && positionSec < start + 5) {
-        final seekTo = start + 2;
-        debugPrint('Ad zone: ${start}s (at ${positionSec}s) → re-open at ${seekTo}s');
-        _adSkipping = true;
-
-        final wasPlaying = _hlsPlayer?.state.playing ?? false;
-
-        // Stop + re-open de clear toan bo buffer (audio ad)
-        _hlsPlayer?.stop().then((_) {
-          if (!mounted) return;
-          _hlsPlayer?.open(Media(_currentUrl)).then((_) {
-            // Seek den vi tri sau ad
-            _hlsPlayer?.seek(Duration(seconds: seekTo)).then((_) {
-              Future.delayed(const Duration(milliseconds: 300), () {
-                if (mounted && wasPlaying) _hlsPlayer?.play();
-                Future.delayed(const Duration(seconds: 3), () { _adSkipping = false; });
-              });
-            });
-          });
-        });
+        debugPrint('API AD HIT: at ${positionSec}s, skip to ${start + 5}s');
+        _skipAdZone(start + 5);
         return;
       }
     }
+  }
+
+  /// ★ Mute để chặn audio leak trước khi skip ad
+  void _muteForAdSkip() {
+    if (_adMuted) return;
+    _adMuted = true;
+    _hlsPlayer?.setVolume(0.0);
+    debugPrint('AD SKIP: muted');
+  }
+
+  /// ★ Unmute sau khi skip ad xong
+  void _unmuteAfterAdSkip() {
+    _adUnmuteTimer?.cancel();
+    _adUnmuteTimer = Timer(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      _adMuted = false;
+      final restoreVol = _isMuted ? 0.0 : (_volume > 0 ? _volume : 100.0);
+      _hlsPlayer?.setVolume(restoreVol);
+      debugPrint('AD SKIP: unmuted, volume=$restoreVol');
+    });
+  }
+
+  /// ★ Skip ad zone: Mute → Stop → Re-open → Seek → Unmute
+  void _skipAdZone(int seekToSec) {
+    _adSkipping = true;
+    final wasPlaying = _hlsPlayer?.state.playing ?? false;
+
+    // Step 1: MUTE ngay lập tức → zero audio leak
+    _muteForAdSkip();
+
+    // Step 2: STOP player → xóa sạch buffer (không đơ)
+    _hlsPlayer?.stop().then((_) {
+      if (!mounted) return;
+
+      // Step 3: Re-open stream → load mới (nhanh hơn seek lớn)
+      _hlsPlayer?.open(Media(_currentUrl)).then((_) {
+        // Step 4: Seek tới sau ad
+        _hlsPlayer?.seek(Duration(seconds: seekToSec)).then((_) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted && wasPlaying) _hlsPlayer?.play();
+            // Step 5: Unmute sau 800ms → video đã chạy ổn định
+            _unmuteAfterAdSkip();
+            Future.delayed(const Duration(seconds: 3), () {
+              _adSkipping = false;
+            });
+          });
+        });
+      });
+    });
   }
 
   // ── Ad overlay simulation ──────────────────────────
@@ -286,7 +339,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _currentAdZone = adZone;
     _adRemainingSec = adZone.duration.toInt();
 
-    // Pause movie
+    // ★ MUTE + Pause để zero audio leak
+    _muteForAdSkip();
     _hlsPlayer?.pause();
 
     // Start countdown
@@ -313,11 +367,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
     if (adZone == null) return;
 
-    // Seek về vị trí kết thúc ad (nội dung tiếp tục)
-    _hlsPlayer?.seek(Duration(seconds: adZone.endTime.toInt()));
-    _hlsPlayer?.play();
-
-    setState(() {});
+    // ★ Stop + Re-open → clear buffer, avoid freeze
+    final seekTo = adZone.endTime.toInt() + 2;
+    _skipAdZone(seekTo);
   }
 
   // ── Load watch progress từ DB ────────────────────────
@@ -711,6 +763,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _stuckDetector?.cancel();
     _stateSyncTimer?.cancel();
     _adCountdownTimer?.cancel();
+    _adUnmuteTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _saveProgressOnExit();
     ActivityService.stopWatching();
@@ -843,6 +896,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   int _adRemainingSec = 0;     // Đếm ngược ad
   Timer? _adCountdownTimer;
   AdZone? _currentAdZone;      // Ad zone hiện tại
+  bool _adMuted = false;       // Đã mute để chống audio leak
+  int _lastPositionForJump = -1; // Track position để detect jump (ad injection)
+  Timer? _adUnmuteTimer;       // Timer unmute sau khi skip ad
 
   int _lastSeekByUser = 0;
   String _currentServerName = '';
