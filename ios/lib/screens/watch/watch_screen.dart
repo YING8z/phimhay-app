@@ -304,7 +304,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     });
   }
 
-  /// ★ Skip ad zone: Mute → Stop → Re-open → Seek → Unmute
+  /// ★ Skip ad zone: Mute → Stop → Re-open → Wait ready → Seek → Unmute
   void _skipAdZone(int seekToSec) {
     _adSkipping = true;
     final wasPlaying = _hlsPlayer?.state.playing ?? false;
@@ -316,13 +316,22 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _hlsPlayer?.stop().then((_) {
       if (!mounted) return;
 
-      // Step 3: Re-open stream → load mới (nhanh hơn seek lớn)
-      _hlsPlayer?.open(Media(_currentUrl)).then((_) {
-        // Step 4: Seek tới sau ad
-        _hlsPlayer?.seek(Duration(seconds: seekToSec)).then((_) {
-          Future.delayed(const Duration(milliseconds: 300), () {
+      // Step 3: Re-open stream
+      _hlsPlayer?.open(Media(_currentUrl));
+
+      // Step 4: Đợi player ready (duration > 0) rồi mới seek
+      StreamSubscription? durationSub;
+      durationSub = _hlsPlayer!.stream.duration.listen((dur) {
+        if (dur.inSeconds <= 0) return; // Chưa load xong
+        durationSub?.cancel(); // Chỉ trigger 1 lần
+
+        if (!mounted) return;
+
+        // Player đã ready → seek tới sau ad
+        _hlsPlayer!.seek(Duration(seconds: seekToSec)).then((_) {
+          Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted && wasPlaying) _hlsPlayer?.play();
-            // Step 5: Unmute sau 800ms → video đã chạy ổn định
+            // Unmute sau khi video chạy ổn định
             _unmuteAfterAdSkip();
             Future.delayed(const Duration(seconds: 3), () {
               _adSkipping = false;
