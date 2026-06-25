@@ -261,14 +261,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
         final num = (i + 1).toString().padLeft(2, '0');
         return '${AppConfig.baseUrl}/thu_vien/$slug/$num.webp';
       });
-<<<<<<< HEAD
-=======
       // ignore: avoid_print
       print('=== Gallery hardcoded: ${_galleryImages.length} images, first=${_galleryImages.first} ===');
 
       // Fetch gallery images from API
       _fetchGallery(slug);
->>>>>>> 0e3d2fc ( update)
 
       // Fetch actors data — SAU KHI API load thành công
       // ignore: avoid_print
@@ -1083,13 +1080,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       );
     }
     return GridView.builder(
-<<<<<<< HEAD
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-=======
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(8),
@@ -1098,19 +1088,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
         childAspectRatio: 16 / 9,
->>>>>>> 0e3d2fc ( update)
       ),
       itemCount: _galleryImages.length,
       itemBuilder: (context, index) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: CachedNetworkImage(
-<<<<<<< HEAD
-            imageUrl: _galleryImages[index],
-            fit: BoxFit.cover,
-            placeholder: (_, __) => Container(color: AppTheme.bgCard),
-            errorWidget: (_, __, ___) => const SizedBox.shrink(),
-=======
             imageUrl: '${_galleryImages[index]}?v=${DateTime.now().millisecondsSinceEpoch ~/ 60000}',
             fit: BoxFit.cover,
             placeholder: (_, __) => Container(color: AppTheme.bgCard),
@@ -1122,7 +1105,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
               });
               return const SizedBox.shrink();
             },
->>>>>>> 0e3d2fc ( update)
           ),
         );
       },

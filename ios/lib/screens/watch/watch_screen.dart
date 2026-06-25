@@ -196,8 +196,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         if (mounted && !_isLandscape) _toggleFullscreen();
       });
     }
-<<<<<<< HEAD
-=======
   }
 
   // ── Fetch ad markers từ API ────────────────────────
@@ -248,7 +246,6 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         return;
       }
     }
->>>>>>> 0e3d2fc ( update)
   }
 
   // ── Load watch progress từ DB ────────────────────────
