@@ -29,33 +29,6 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Detect changes
-        id: changes
-        run: |
-          # Flutter deps changed?
-          echo "pubspec_changed=false" >> $GITHUB_OUTPUT
-          if [ -f ".last_build_pubspec" ]; then
-            CURRENT_HASH=$(md5sum pubspec.yaml pubspec.lock 2>/dev/null | md5sum | cut -d' ' -f1)
-            LAST_HASH=$(cat .last_build_pubspec)
-            if [ "$CURRENT_HASH" != "$LAST_HASH" ]; then
-              echo "pubspec_changed=true" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "pubspec_changed=true" >> $GITHUB_OUTPUT
-          fi
-
-          # iOS pods changed?
-          echo "pods_changed=false" >> $GITHUB_OUTPUT
-          if [ -f ".last_build_pods" ]; then
-            CURRENT_HASH=$(md5sum ios/Podfile ios/Podfile.lock 2>/dev/null | md5sum | cut -d' ' -f1)
-            LAST_HASH=$(cat .last_build_pods)
-            if [ "$CURRENT_HASH" != "$LAST_HASH" ]; then
-              echo "pods_changed=true" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "pods_changed=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -97,17 +70,22 @@ jobs:
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = .*/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/" "$PBXPROJ"
 
       - name: Install Flutter dependencies
-        if: steps.changes.outputs.pubspec_changed == 'true'
         run: flutter pub get
 
       - name: Install CocoaPods
-        if: steps.changes.outputs.pods_changed == 'true' || steps.changes.outputs.pubspec_changed == 'true'
         run: |
           cd ios
-          if [ -f "Podfile.lock" ]; then
-            pod install
+          rm -f Podfile.lock
+          pod install --repo-update
+          cd ..
+
+      - name: Verify StartApp SDK installed
+        run: |
+          if grep -q "StartAppSDK" ios/Podfile.lock; then
+            echo "✅ StartAppSDK found in Podfile.lock"
           else
-            pod install --repo-update
+            echo "⚠️ StartAppSDK NOT found — checking pod install output..."
+            grep -i "startapp" ios/Podfile.lock || echo "StartAppSDK completely missing"
           fi
 
       - name: Patch Swift Concurrency flags
@@ -125,11 +103,6 @@ jobs:
 
       - name: Build iOS
         run: flutter build ios --release --no-codesign
-
-      - name: Save cache keys
-        run: |
-          md5sum pubspec.yaml pubspec.lock 2>/dev/null | md5sum | cut -d' ' -f1 > .last_build_pubspec
-          md5sum ios/Podfile ios/Podfile.lock 2>/dev/null | md5sum | cut -d' ' -f1 > .last_build_pods
 
       - name: Create IPA
         run: |
