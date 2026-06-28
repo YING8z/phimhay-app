@@ -86,6 +86,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   Player? _hlsPlayer;
   VideoController? _videoController;
   static const _pipChannel = MethodChannel('phimhay/pip');
+  static const _airplayChannel = MethodChannel('phimhay/airplay');
   bool _pipAvailable = false;
 
   bool _isLoading = true;
@@ -759,6 +760,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  Future<void> _showAirPlayPicker() async {
+    try {
+      await _airplayChannel.invokeMethod('showRoutePicker');
+    } catch (_) {}
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
@@ -1095,6 +1102,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       _reportHealth('ok');
     }).catchError((e) {
       _fallbackToEmbed();
+      return null;
     });
 
     // Health check: nếu sau 8s player vẫn stuck ở 0 → fallback embed
@@ -1586,7 +1594,8 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   ]),
                 ),
               ),
-              // Badge player mode
+              // Badge player mode (debug only)
+              if (kDebugMode)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -1608,7 +1617,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         // Server selector — hiện cho mọi user
         if (_servers.length > 1) _buildServerSelector(),
         // Real banner ad (StartApp)
-        const StartAppBannerWidget(showDebug: true),
+        StartAppBannerWidget(showDebug: kDebugMode),
         const Divider(color: Color(0x22FFFFFF), height: 1),
         // Episode list header
         Padding(
@@ -2498,6 +2507,15 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
                     child: AppSvgIcon('picture-in-picture-2.svg', size: 20, color: Colors.white),
+                  ),
+                ),
+              // AirPlay button (iOS only)
+              if (Platform.isIOS)
+                GestureDetector(
+                  onTap: _showAirPlayPicker,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: AppSvgIcon('airplay.svg', size: 20, color: Colors.white),
                   ),
                 ),
               // Mic button → server popup

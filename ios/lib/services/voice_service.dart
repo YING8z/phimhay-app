@@ -246,6 +246,7 @@ class VoiceService {
       }
     }).catchError((e) {
       _log('Voice: getStats error: $e');
+      return null;
     });
   }
 

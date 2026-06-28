@@ -1102,6 +1102,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       _reportHealth('ok');
     }).catchError((e) {
       _fallbackToEmbed();
+      return null;
     });
 
     // Health check: nếu sau 8s player vẫn stuck ở 0 → fallback embed
