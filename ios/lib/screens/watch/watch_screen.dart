@@ -28,9 +28,8 @@ import 'package:phimhay_app/screens/actors/actors_list_screen.dart';
 import 'package:phimhay_app/screens/watch_room/watch_room_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:phimhay_app/services/startapp_ad_service.dart';
-import 'package:phimhay_app/widgets/startapp_banner_widget.dart';
-import 'package:phimhay_app/widgets/startapp_banner_widget.dart';
+import 'package:phimhay_app/services/smartlink_service.dart';
+import 'package:phimhay_app/widgets/smartlink_banner_widget.dart';
 import 'package:phimhay_app/services/m3u8_ad_parser.dart';
 
 /// Loại player hiện tại
@@ -1274,7 +1273,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   // ── Chuyển tập ────────────────────────────────────
   void _switchEpisode(Map<String, dynamic> ep, {bool keepPosition = false}) {
     // Show interstitial on episode switch (frequency-capped)
-    StartAppAdService.showInterstitialIfAllowed(context, onDone: () {
+    SmartLinkService.showInterstitialIfNeeded(context, onDone: () {
       _doSwitchEpisode(ep, keepPosition: keepPosition);
     });
   }
@@ -1561,7 +1560,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             children: [
               GestureDetector(
                 onTap: () {
-                  StartAppAdService.showInterstitialIfAllowed(context, onDone: () {
+                  SmartLinkService.showInterstitialIfNeeded(context, onDone: () {
                     Navigator.pop(context);
                   });
                 },
@@ -1617,7 +1616,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
         // Server selector — hiện cho mọi user
         if (_servers.length > 1) _buildServerSelector(),
         // Real banner ad (StartApp)
-        StartAppBannerWidget(showDebug: kDebugMode),
+        SmartLinkBannerWidget(),
         const Divider(color: Color(0x22FFFFFF), height: 1),
         // Episode list header
         Padding(

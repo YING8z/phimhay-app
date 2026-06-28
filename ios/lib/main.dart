@@ -17,7 +17,7 @@ import 'providers/reminder_provider.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash/splash_screen.dart';
 import 'services/push_service.dart';
-import 'services/startapp_ad_service.dart';
+import 'services/smartlink_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,8 +60,8 @@ void main() async {
   // Initialize liquid glass widgets
   await LiquidGlassWidgets.initialize();
 
-  // Initialize Ads (StartApp SDK - real ads)
-  StartAppAdService.init();
+  // Initialize SmartLink
+  SmartLinkService.init();
 
   // Initialize activity tracking
   ActivityService.init();

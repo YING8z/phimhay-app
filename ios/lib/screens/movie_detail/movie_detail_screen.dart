@@ -29,9 +29,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:phimhay_app/screens/home/home_screen.dart';
 import 'package:phimhay_app/screens/watch_party/watch_party_screen.dart';
 import 'package:phimhay_app/screens/actors/actors_list_screen.dart';
-import 'package:phimhay_app/services/startapp_ad_service.dart';
-import 'package:phimhay_app/widgets/startapp_banner_widget.dart';
-import 'package:phimhay_app/services/startapp_ad_service.dart';
+import 'package:phimhay_app/services/smartlink_service.dart';
+import 'package:phimhay_app/widgets/smartlink_banner_widget.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final int movieId;
@@ -166,7 +165,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       return;
     }
 
-    StartAppAdService.showBeforeWatch(context, () {
+    SmartLinkService.showInterstitialIfNeeded(context, onDone: () {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -585,7 +584,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       );
     }
 
-    StartAppAdService.showInterstitialIfAllowed(context, onDone: _navigateToWatch);
+    SmartLinkService.showInterstitialIfNeeded(context, onDone: _navigateToWatch);
   }
 
   @override
@@ -662,7 +661,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
             bottom: 100,
             left: 0,
             right: 0,
-            child: StartAppBannerWidget(),
+            child: SmartLinkBannerWidget(),
           ),
         ],
       ),
@@ -2347,7 +2346,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
         ? widget.movieId
         : (widget.movie?.id ?? (_movieData?['id'] as int? ?? 0));
 
-    StartAppAdService.showBeforeWatch(context, () {
+    SmartLinkService.showInterstitialIfNeeded(context, onDone: () {
       Navigator.push(
         context,
         MaterialPageRoute(
