@@ -13,7 +13,7 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout code
@@ -34,6 +34,9 @@ jobs:
         with:
           channel: 'stable'
           cache: true
+
+      - name: Xcode version
+        run: xcodebuild -version
 
       - name: Disable Swift Package Manager
         run: flutter config --no-enable-swift-package-manager
@@ -86,19 +89,6 @@ jobs:
           else
             echo "⚠️ StartAppSDK NOT found — checking pod install output..."
             grep -i "startapp" ios/Podfile.lock || echo "StartAppSDK completely missing"
-          fi
-
-      - name: Patch Swift Concurrency flags
-        run: |
-          XCCONFIG_DIR="ios/Pods/Target Support Files/Pods-Runner"
-          for f in "$XCCONFIG_DIR"/*.xcconfig; do
-            if [ -f "$f" ] && ! grep -q "lswift_Concurrency" "$f"; then
-              echo 'OTHER_LDFLAGS = $(inherited) -lswift_Concurrency' >> "$f"
-            fi
-          done
-          PBXPROJ="ios/Runner.xcodeproj/project.pbxproj"
-          if ! grep -q "lswift_Concurrency" "$PBXPROJ"; then
-            sed -i '' 's/ENABLE_BITCODE = NO;/ENABLE_BITCODE = NO;\n\t\t\t\tOTHER_LDFLAGS = (\n\t\t\t\t\t"$(inherited)",\n\t\t\t\t\t"-lswift_Concurrency",\n\t\t\t\t);/' "$PBXPROJ"
           fi
 
       - name: Build iOS

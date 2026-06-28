@@ -60,7 +60,7 @@ void main() async {
   // Initialize liquid glass widgets
   await LiquidGlassWidgets.initialize();
 
-  // Initialize Ads
+  // Initialize Ads (StartApp SDK - real ads)
   StartAppAdService.init();
 
   // Initialize activity tracking

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:startapp_sdk/startapp.dart';
 import 'package:phimhay_app/services/startapp_ad_service.dart';
+import 'package:phimhay_app/widgets/applovin_banner_widget.dart';
 
 class StartAppBannerWidget extends StatefulWidget {
   final bool showDebug;
@@ -19,11 +20,13 @@ class _StartAppBannerWidgetState extends State<StartAppBannerWidget> {
   @override
   void initState() {
     super.initState();
-    _loadBanner();
+    if (!Platform.isIOS) {
+      _loadBanner();
+    }
   }
 
   void _loadBanner() {
-    final platform = Platform.isIOS ? 'iOS' : 'Android';
+    final platform = Platform.isAndroid ? 'Android' : 'Unknown';
     print('[StartAppBanner] Loading on $platform...');
     setState(() { _status = 'loading'; _error = null; });
 
@@ -47,12 +50,17 @@ class _StartAppBannerWidgetState extends State<StartAppBannerWidget> {
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
+    if (!Platform.isIOS) {
+      _bannerAd?.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (Platform.isIOS) {
+      return AppLovinBannerWidget(showDebug: widget.showDebug);
+    }
     if (widget.showDebug) {
       return _buildDebug();
     }
@@ -68,7 +76,7 @@ class _StartAppBannerWidgetState extends State<StartAppBannerWidget> {
   }
 
   Widget _buildDebug() {
-    final platform = Platform.isIOS ? 'iOS' : 'Android';
+    final platform = Platform.isAndroid ? 'Android' : 'Unknown';
     Color statusColor;
     IconData statusIcon;
     switch (_status) {

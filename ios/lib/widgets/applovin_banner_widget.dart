@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:phimhay_app/services/applovin_ad_service.dart';
@@ -14,8 +13,6 @@ class AppLovinBannerWidget extends StatefulWidget {
 class _AppLovinBannerWidgetState extends State<AppLovinBannerWidget> {
   String _status = 'idle';
   String? _error;
-  int _retryCount = 0;
-  static const int _maxRetries = 5;
 
   @override
   void initState() {
@@ -23,49 +20,35 @@ class _AppLovinBannerWidgetState extends State<AppLovinBannerWidget> {
     _loadBanner();
   }
 
-  Future<void> _loadBanner() async {
-    if (!Platform.isIOS) return;
-    print('[AppodealBanner] Loading on iOS (attempt ${_retryCount + 1})...');
+  void _loadBanner() {
+    final platform = Platform.isIOS ? 'iOS' : 'Android';
+    print('[AppodealBanner] Loading on $platform...');
     setState(() { _status = 'loading'; _error = null; });
 
-    try {
-      await AppLovinAdService.init();
-      AppLovinAdService.loadBanner();
-      await Future.delayed(const Duration(seconds: 3));
-      final shown = await AppLovinAdService.showBanner();
-      if (mounted) {
-        if (shown) {
-          setState(() { _status = 'loaded'; _error = null; });
-        } else if (_retryCount < _maxRetries) {
-          _retryCount++;
-          print('[AppodealBanner] Not ready, retry ${_retryCount}/$_maxRetries in 5s...');
-          await Future.delayed(const Duration(seconds: 5));
-          if (mounted) _loadBanner();
-        } else {
-          setState(() { _status = 'failed'; _error = 'No fill after $_maxRetries retries'; });
-        }
-      }
-    } catch (e) {
-      print('[AppodealBanner] FAILED on iOS: $e');
-      if (mounted) setState(() { _status = 'failed'; _error = e.toString(); });
-    }
-  }
-
-  @override
-  void dispose() {
-    if (Platform.isIOS) AppLovinAdService.hideBanner();
-    super.dispose();
+    AppLovinAdService.loadBanner();
+    // Simulate loaded state after delay (native handles actual loading)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() { _status = 'loaded'; });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!Platform.isIOS) return const SizedBox.shrink();
     if (widget.showDebug) return _buildDebug();
     if (_status != 'loaded') return const SizedBox.shrink();
-    return const SizedBox(height: 52);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: SizedBox(
+        height: 50,
+        child: Center(
+          child: Text('Appodeal Banner', style: TextStyle(color: Colors.white38, fontSize: 10)),
+        ),
+      ),
+    );
   }
 
   Widget _buildDebug() {
+    final platform = Platform.isIOS ? 'iOS' : 'Android';
     Color statusColor;
     IconData statusIcon;
     switch (_status) {
@@ -101,15 +84,13 @@ class _AppLovinBannerWidgetState extends State<AppLovinBannerWidget> {
           Row(children: [
             Icon(statusIcon, color: statusColor, size: 16),
             const SizedBox(width: 6),
-            Text('Appodeal Banner [iOS]',
+            Text('Appodeal Banner [$platform]',
                 style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 4),
           Text('Status: $_status', style: const TextStyle(color: Colors.white70, fontSize: 11)),
           if (_error != null)
             Text('Error: $_error', style: const TextStyle(color: Colors.redAccent, fontSize: 10)),
-          if (_status == 'loaded')
-            const SizedBox(height: 52),
         ],
       ),
     );

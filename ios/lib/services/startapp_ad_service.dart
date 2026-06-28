@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:startapp_sdk/startapp.dart';
 import 'package:phimhay_app/services/ad_frequency_service.dart';
@@ -15,18 +16,20 @@ class StartAppAdService {
     if (_initialized) return;
     _initialized = true;
     await AdFrequencyService.init();
-    print('[StartApp] Initializing SDK...');
+    final platform = Platform.isIOS ? 'iOS' : (Platform.isAndroid ? 'Android' : 'Unknown');
+    print('[StartApp] Initializing SDK on $platform...');
     try {
       await _sdk.setTestAdsEnabled(false);
-      print('[StartApp] Test ads enabled');
+      print('[StartApp] SDK initialized OK on $platform');
     } catch (e) {
-      print('[StartApp] ERROR setTestAdsEnabled: $e');
+      print('[StartApp] ERROR init on $platform: $e');
     }
     _preloadInterstitial();
   }
 
   static void _preloadInterstitial() {
-    print('[StartApp] Loading interstitial ad...');
+    final platform = Platform.isIOS ? 'iOS' : 'Android';
+    print('[StartApp] Loading interstitial on $platform...');
     _sdk.loadInterstitialAd(
       onAdDisplayed: () {
         print('[StartApp] Interstitial AD_DISPLAYED');
@@ -57,7 +60,8 @@ class StartAppAdService {
   // ── Native Ad ──────────────────────────────────────
   static void loadNativeAd(String tag) {
     if (_nativeAds.containsKey(tag)) return;
-    print('[StartApp] Loading native ad: $tag');
+    final platform = Platform.isIOS ? 'iOS' : 'Android';
+    print('[StartApp] Loading native ad: $tag on $platform');
     _sdk.loadNativeAd(
       onAdImpression: () {},
       onAdClicked: () {},
