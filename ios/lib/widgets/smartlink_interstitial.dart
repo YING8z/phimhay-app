@@ -55,21 +55,41 @@ class _SmartLinkInterstitialState extends State<SmartLinkInterstitial>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.local_offer, color: Colors.amber, size: 64),
-                SizedBox(height: 16),
-                Text(
-                  'ƯU ĐÃI ĐẶC BIỆT',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+          Center(
+            child: GestureDetector(
+              onTap: () => SmartLinkService.openSmartLink(context),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.local_offer, color: Colors.amber, size: 64),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'ƯU ĐÃI ĐẶC BIỆT',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [Colors.amber.shade700, Colors.orange.shade600]),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'XEM NGAY →',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Positioned(

@@ -9,25 +9,16 @@ class SmartLinkBannerWidget extends StatefulWidget {
 }
 
 class _SmartLinkBannerWidgetState extends State<SmartLinkBannerWidget> {
-  bool _clicked = false;
   bool _hidden = false;
-  DateTime? _hiddenUntil;
 
   void _onTap() {
     if (_hidden) return;
     SmartLinkService.openSmartLink(context);
     setState(() {
-      _clicked = true;
       _hidden = true;
-      _hiddenUntil = DateTime.now().add(const Duration(seconds: 180));
     });
     Future.delayed(const Duration(seconds: 180), () {
-      if (mounted) {
-        setState(() {
-          _hidden = false;
-          _clicked = false;
-        });
-      }
+      if (mounted) setState(() => _hidden = false);
     });
   }
 
@@ -38,26 +29,28 @@ class _SmartLinkBannerWidgetState extends State<SmartLinkBannerWidget> {
       onTap: _onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 14),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.amber.shade700, Colors.orange.shade600],
-          ),
-          borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(colors: [Colors.amber.shade700, Colors.orange.shade600]),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.local_offer, color: Colors.white, size: 18),
+            Icon(Icons.local_offer, color: Colors.white, size: 20),
             SizedBox(width: 8),
-            Text(
-              'Khám phá ưu đãi hôm nay →',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: Text(
+                'Ưu đãi đặc biệt hôm nay',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
+            Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 14),
           ],
         ),
       ),
