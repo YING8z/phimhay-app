@@ -100,11 +100,12 @@ import AVKit
                     routePickerView.delegate = nil
                     if let rootView = self.window?.rootViewController?.view {
                         rootView.addSubview(routePickerView)
-                        // Find and tap the AirPlay button inside the route picker
-                        for subview in routePickerView.subviews {
-                            if subview isKindOfClass(NSClassFromString("AVButton")!) {
-                                subview.sendActions(for: .touchUpInside)
-                                break
+                        if let avButtonClass = NSClassFromString("AVButton") {
+                            for subview in routePickerView.subviews {
+                                if subview.isKind(of: avButtonClass) {
+                                    subview.sendActions(for: .touchUpInside)
+                                    break
+                                }
                             }
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
