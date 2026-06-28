@@ -96,13 +96,20 @@ import AVKit
             switch call.method {
             case "showRoutePicker":
                 DispatchQueue.main.async {
+                    // Ensure audio session allows AirPlay video output
+                    let session = AVAudioSession.sharedInstance()
+                    do {
+                        try session.setCategory(.playback, mode: .moviePlayback,
+                            options: [.allowAirPlay, .allowBluetooth, .allowBluetoothA2DP])
+                        try session.setActive(true)
+                    } catch {}
+
                     let routePickerView = AVRoutePickerView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
                     routePickerView.tintColor = .white
                     routePickerView.activeTintColor = .systemBlue
                     if let rootView = self.window?.rootViewController?.view {
                         rootView.addSubview(routePickerView)
                         routePickerView.center = rootView.center
-                        // Auto-focus the picker
                         routePickerView.becomeFirstResponder()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
                             routePickerView.removeFromSuperview()
