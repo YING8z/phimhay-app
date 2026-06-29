@@ -139,6 +139,16 @@ class StartAppAdService {
     _showInterstitialAd(context, onReady);
   }
 
+  // Show rewarded ad (iOS) - higher eCPM
+  static void showRewardedBeforeAction(BuildContext context, {VoidCallback? onReward, VoidCallback? onDone}) {
+    if (Platform.isIOS) {
+      AppLovinAdService.showRewardedBeforeAction(context, onReward: onReward, onDone: onDone);
+      return;
+    }
+    // Android: use StartApp rewarded
+    showBeforeWatch(context, () => onDone?.call());
+  }
+
   static void _showInterstitialAd(BuildContext context, Function onReady) {
     if (_interstitialAd != null) {
       print('[StartApp] Showing interstitial...');

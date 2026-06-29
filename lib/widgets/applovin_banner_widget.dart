@@ -18,7 +18,6 @@ class _AppLovinBannerWidgetState extends State<AppLovinBannerWidget> {
   Timer? _retryTimer;
   int _retryCount = 0;
   static const int _maxRetries = 8;
-  bool _bannerLoaded = false;
 
   @override
   void initState() {
@@ -33,7 +32,6 @@ class _AppLovinBannerWidgetState extends State<AppLovinBannerWidget> {
 
     AppLovinAdService.loadBanner();
 
-    // Check if banner is ready after delay
     Future.delayed(const Duration(seconds: 5), () async {
       if (!mounted) return;
       try {
@@ -44,7 +42,7 @@ class _AppLovinBannerWidgetState extends State<AppLovinBannerWidget> {
       final loaded = await AppLovinAdService.isBannerLoaded();
       if (loaded) {
         print('[AppodealBanner] Banner loaded successfully on iOS');
-        if (mounted) setState(() { _status = 'loaded'; _bannerLoaded = true; });
+        if (mounted) setState(() { _status = 'loaded'; });
       } else {
         _retryCount++;
         if (_retryCount < _maxRetries) {
@@ -69,9 +67,16 @@ class _AppLovinBannerWidgetState extends State<AppLovinBannerWidget> {
   @override
   Widget build(BuildContext context) {
     if (widget.showDebug) return _buildDebug();
-    if (_status != 'loaded') return const SizedBox.shrink();
-    // Appodeal renders banner natively at bottom — this widget is just a spacer
-    return const SizedBox(height: 50);
+
+    // Show actual Appodeal banner widget when loaded
+    if (_status == 'loaded') {
+      return AppodealBanner(
+        adSize: AppodealBannerSize.BANNER,
+        placement: "default",
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildDebug() {

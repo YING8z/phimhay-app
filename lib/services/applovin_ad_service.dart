@@ -140,7 +140,6 @@ class AppLovinAdService {
     }).catchError((e) {
       print('[Appodeal] Interstitial show FAILED: $e');
       onDone?.call();
-      return null;
     });
   }
 
@@ -168,7 +167,6 @@ class AppLovinAdService {
     }).catchError((e) {
       print('[Appodeal] Rewarded show FAILED: $e');
       onDone?.call();
-      return null;
     });
   }
 
@@ -233,5 +231,39 @@ class AppLovinAdService {
   static void showBeforeWatch(BuildContext context, Function onReady) {
     print('[Appodeal] showBeforeWatch called');
     showInterstitialIfAllowed(context, onDone: () => onReady());
+  }
+
+  // Show rewarded ad - higher eCPM than interstitial
+  static void showRewardedBeforeAction(BuildContext context, {VoidCallback? onReward, VoidCallback? onDone}) {
+    if (!Platform.isIOS) {
+      onDone?.call();
+      return;
+    }
+    print('[Appodeal] showRewardedBeforeAction called');
+    init().then((_) async {
+      final canShow = await Appodeal.canShow(AppodealAdType.RewardedVideo);
+      if (canShow) {
+        Appodeal.show(AppodealAdType.RewardedVideo);
+        onReward?.call();
+        print('[Appodeal] Rewarded shown');
+      } else {
+        print('[Appodeal] Rewarded not ready, falling back to interstitial');
+        showInterstitialIfAllowed(context, onDone: onDone);
+        return;
+      }
+      onDone?.call();
+    }).catchError((e) {
+      print('[Appodeal] Rewarded show FAILED: $e');
+      showInterstitialIfAllowed(context, onDone: onDone);
+    });
+  }
+
+  // Preload all ad types
+  static void preloadAll() {
+    if (!Platform.isIOS) return;
+    loadBanner();
+    loadInterstitial();
+    loadRewarded();
+    print('[Appodeal] Preloading all ad types');
   }
 }

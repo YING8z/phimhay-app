@@ -1273,10 +1273,16 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   // ── Chuyển tập ────────────────────────────────────
   void _switchEpisode(Map<String, dynamic> ep, {bool keepPosition = false}) {
-    // Show interstitial on episode switch (frequency-capped)
-    StartAppAdService.showInterstitialIfAllowed(context, onDone: () {
-      _doSwitchEpisode(ep, keepPosition: keepPosition);
-    });
+    // Show rewarded on episode switch (higher eCPM than interstitial)
+    StartAppAdService.showRewardedBeforeAction(
+      context,
+      onReward: () {
+        // User watched rewarded ad - give bonus (optional)
+      },
+      onDone: () {
+        _doSwitchEpisode(ep, keepPosition: keepPosition);
+      },
+    );
   }
 
   void _doSwitchEpisode(Map<String, dynamic> ep, {bool keepPosition = false}) {
@@ -1561,9 +1567,12 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             children: [
               GestureDetector(
                 onTap: () {
-                  StartAppAdService.showInterstitialIfAllowed(context, onDone: () {
-                    Navigator.pop(context);
-                  });
+                  StartAppAdService.showRewardedBeforeAction(
+                    context,
+                    onDone: () {
+                      Navigator.pop(context);
+                    },
+                  );
                 },
                 child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
               ),

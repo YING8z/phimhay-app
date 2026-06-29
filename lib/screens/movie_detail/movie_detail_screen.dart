@@ -585,7 +585,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       );
     }
 
-    StartAppAdService.showInterstitialIfAllowed(context, onDone: _navigateToWatch);
+    StartAppAdService.showRewardedBeforeAction(context, onDone: _navigateToWatch);
   }
 
   @override
