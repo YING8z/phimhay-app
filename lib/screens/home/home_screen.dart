@@ -24,6 +24,7 @@ import '../notification/notification_screen.dart';
 import '../actors/actors_list_screen.dart';
 import '../../services/startapp_ad_service.dart';
 import '../../widgets/startapp_banner_widget.dart';
+import '../../widgets/collection_carousel.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
@@ -230,6 +231,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Hero section: blur background + chips + carousel
             _buildHeroSection(provider),
+            // Collection carousel
+            const CollectionCarousel(),
             ...provider.sections.map((s) => MovieRail(
               title: s.title,
               moreHref: s.moreHref,

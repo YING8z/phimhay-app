@@ -14,6 +14,7 @@ import 'providers/auth_provider.dart';
 import 'providers/favorite_provider.dart';
 import 'providers/watch_history_provider.dart';
 import 'providers/reminder_provider.dart';
+import 'providers/collection_provider.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/appodeal_debug_screen.dart';
 import 'screens/splash/splash_screen.dart';
@@ -76,6 +77,7 @@ void main() async {
           ChangeNotifierProvider(create: (_) => FavoriteProvider()),
           ChangeNotifierProvider(create: (_) => WatchHistoryProvider()),
           ChangeNotifierProvider(create: (_) => ReminderProvider()),
+          ChangeNotifierProvider(create: (_) => CollectionProvider()),
         ],
         child: const XiaoPhimApp(),
       ),
