@@ -2399,7 +2399,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               return GestureDetector(
                 onTap: () {
                   Navigator.pop(ctx);
-                  _switchEpisode(ep);
+                  _switchEpisode(ep, keepPosition: _isLandscape);
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -2654,7 +2654,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
                   final eps = _currentServerEps;
                   for (int i = 0; i < eps.length; i++) {
                     if (eps[i]['id'] == _currentEpId && i > 0) {
-                      _switchEpisode(eps[i - 1]);
+                      _switchEpisode(eps[i - 1], keepPosition: true);
                       break;
                     }
                   }
