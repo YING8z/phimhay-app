@@ -906,19 +906,19 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   }
 
   // ── Brightness lock ─────────────────────────────────
+  // Giữ nguyên brightness khi xem phim (giống YouTube)
   Timer? _brightnessTimer;
 
   Future<void> _lockBrightness() async {
     try {
       _originalBrightness = await ScreenBrightness().current;
-      await ScreenBrightness().setScreenBrightness(1.0);
-      _brightnessLocked = true;
       _brightnessTimer?.cancel();
       _brightnessTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
         if (_brightnessLocked && mounted) {
-          try { await ScreenBrightness().setScreenBrightness(1.0); } catch (_) {}
+          try { await ScreenBrightness().setScreenBrightness(_originalBrightness); } catch (_) {}
         }
       });
+      _brightnessLocked = true;
     } catch (_) {}
   }
 
