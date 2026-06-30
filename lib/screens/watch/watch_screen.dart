@@ -28,6 +28,7 @@ import 'package:phimhay_app/screens/actors/actors_list_screen.dart';
 import 'package:phimhay_app/screens/watch_room/watch_room_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:phimhay_app/services/startapp_ad_service.dart';
 import 'package:phimhay_app/widgets/startapp_banner_widget.dart';
 import 'package:phimhay_app/widgets/startapp_banner_widget.dart';
@@ -174,6 +175,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WakelockPlus.enable(); // Chặn màn hình khóa khi xem phim
+    _lockBrightness(); // Giữ độ sáng max khi xem phim
     _checkPipAvailability();
     WidgetsBinding.instance.addObserver(this);
     _currentEpId = widget.episodeId;
@@ -873,6 +875,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WakelockPlus.disable(); // Bật lại màn hình khóa khi thoát
+    _unlockBrightness(); // Restore độ sáng gốc
     _healthCheckTimer?.cancel();
     _autoHideControlsTimer?.cancel();
     _clockTimer?.cancel();
@@ -882,6 +885,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _stateSyncTimer?.cancel();
     _adCountdownTimer?.cancel();
     _adUnmuteTimer?.cancel();
+    _doubleTapTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _saveProgressOnExit();
     ActivityService.stopWatching();
@@ -889,6 +893,56 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     _hlsPlayer?.dispose();
     _webController?.dispose();
     super.dispose();
+  }
+
+  // ── Brightness lock ─────────────────────────────────
+  Future<void> _lockBrightness() async {
+    try {
+      _originalBrightness = await ScreenBrightness().current;
+      await ScreenBrightness().setScreenBrightness(1.0);
+      _brightnessLocked = true;
+    } catch (_) {}
+  }
+
+  Future<void> _unlockBrightness() async {
+    if (!_brightnessLocked) return;
+    try {
+      await ScreenBrightness().setScreenBrightness(_originalBrightness);
+      _brightnessLocked = false;
+    } catch (_) {}
+  }
+
+  // ── Double-click visual feedback ─────────────────────
+  void _showDoubleTapFeedback(bool isRight) {
+    _doubleTapTimer?.cancel();
+    setState(() {
+      if (isRight) {
+        _showDoubleTapRight = true;
+        _showDoubleTapLeft = false;
+      } else {
+        _showDoubleTapLeft = true;
+        _showDoubleTapRight = false;
+      }
+      _doubleTapProgress = 1.0;
+    });
+    // Fade out animation
+    _doubleTapTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() { _showDoubleTapLeft = false; _showDoubleTapRight = false; });
+    });
+  }
+
+  // ── Long-press 2x speed ─────────────────────────────
+  void _onLongPressStart() {
+    _speedBeforeLongPress = _playbackSpeed;
+    _isLongPressSpeedUp = true;
+    _hlsPlayer?.setRate(2.0);
+    setState(() {});
+  }
+
+  void _onLongPressEnd() {
+    _isLongPressSpeedUp = false;
+    _hlsPlayer?.setRate(_speedBeforeLongPress);
+    setState(() {});
   }
 
   // ── Fetch episodes ────────────────────────────────
@@ -1029,6 +1083,20 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
   List<SubtitleEntry> _subtitles = [];
   bool _subtitleEnabled = false;
   String? _currentSubtitleUrl;
+
+  // ── Brightness lock ──
+  double _originalBrightness = 1.0;
+  bool _brightnessLocked = false;
+
+  // ── Double-click visual feedback ──
+  bool _showDoubleTapLeft = false;
+  bool _showDoubleTapRight = false;
+  Timer? _doubleTapTimer;
+  double _doubleTapProgress = 0;
+
+  // ── Long-press 2x speed ──
+  bool _isLongPressSpeedUp = false;
+  double _speedBeforeLongPress = 1.0;
 
   void _initHlsPlayer(String url) {
     _hlsPlayer ??= Player();
@@ -1768,72 +1836,142 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
               },
             ),
 
-          // ── Gesture zones: tap = show/hide controls, double-tap = seek 10s ──
-          // Ẩn gesture zones khi đang play ad
+          // ── Gesture zones: tap = show/hide controls, double-tap = seek, long-press = 2x ──
           if (_playerMode == _PlayerMode.hls && _playerReady)
-            Row(
+            Stack(
               children: [
-                // LEFT zone: tap = toggle controls, double-tap = lùi 10s
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () {
-                      if (_showControls) {
-                        setState(() => _showControls = false);
-                        _autoHideControlsTimer?.cancel();
-                      } else {
-                        _showControlsWithAutoHide();
-                      }
-                    },
-                    onDoubleTap: () {
-                      final pos = _hlsPlayer?.state.position ?? Duration.zero;
-                      final target = max(0, pos.inSeconds - 10);
-                      _seekTargetTime = target;
-                      _lastSeekByUser = DateTime.now().millisecondsSinceEpoch;
-                      if (mounted) setState(() => _currentPos = Duration(seconds: target));
-                      _hlsPlayer?.seek(Duration(seconds: target));
-                    },
-                    child: const SizedBox.expand(),
-                  ),
+                Row(
+                  children: [
+                    // LEFT zone: tap, double-tap = lùi 10s, long-press = 2x
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (_showControls) {
+                            setState(() => _showControls = false);
+                            _autoHideControlsTimer?.cancel();
+                          } else {
+                            _showControlsWithAutoHide();
+                          }
+                        },
+                        onDoubleTap: () {
+                          final pos = _hlsPlayer?.state.position ?? Duration.zero;
+                          final target = max(0, pos.inSeconds - 10);
+                          _seekTargetTime = target;
+                          _lastSeekByUser = DateTime.now().millisecondsSinceEpoch;
+                          if (mounted) setState(() => _currentPos = Duration(seconds: target));
+                          _hlsPlayer?.seek(Duration(seconds: target));
+                          _showDoubleTapFeedback(false);
+                        },
+                        onLongPressStart: (_) => _onLongPressStart(),
+                        onLongPressEnd: (_) => _onLongPressEnd(),
+                        onLongPressCancel: () => _onLongPressEnd(),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                    // CENTER zone: tap = toggle controls
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (_showControls) {
+                            setState(() => _showControls = false);
+                            _autoHideControlsTimer?.cancel();
+                          } else {
+                            _showControlsWithAutoHide();
+                          }
+                        },
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                    // RIGHT zone: tap, double-tap = tới 10s, long-press = 2x
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (_showControls) {
+                            setState(() => _showControls = false);
+                            _autoHideControlsTimer?.cancel();
+                          } else {
+                            _showControlsWithAutoHide();
+                          }
+                        },
+                        onDoubleTap: () {
+                          final pos = _hlsPlayer?.state.position ?? Duration.zero;
+                          final target = pos.inSeconds + 10;
+                          _seekTargetTime = target;
+                          _lastSeekByUser = DateTime.now().millisecondsSinceEpoch;
+                          if (mounted) setState(() => _currentPos = Duration(seconds: target));
+                          _hlsPlayer?.seek(Duration(seconds: target));
+                          _showDoubleTapFeedback(true);
+                        },
+                        onLongPressStart: (_) => _onLongPressStart(),
+                        onLongPressEnd: (_) => _onLongPressEnd(),
+                        onLongPressCancel: () => _onLongPressEnd(),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ],
                 ),
-                // CENTER zone: tap = toggle controls
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () {
-                      if (_showControls) {
-                        setState(() => _showControls = false);
-                        _autoHideControlsTimer?.cancel();
-                      } else {
-                        _showControlsWithAutoHide();
-                      }
-                    },
-                    child: const SizedBox.expand(),
+                // ── Double-tap left feedback ──
+                if (_showDoubleTapLeft)
+                  Positioned(
+                    left: 20,
+                    top: 0, bottom: 0,
+                    child: Center(
+                      child: AnimatedOpacity(
+                        opacity: _showDoubleTapLeft ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.replay_10, color: Colors.white, size: 32),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                // RIGHT zone: tap = toggle controls, double-tap = tới 10s
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () {
-                      if (_showControls) {
-                        setState(() => _showControls = false);
-                        _autoHideControlsTimer?.cancel();
-                      } else {
-                        _showControlsWithAutoHide();
-                      }
-                    },
-                    onDoubleTap: () {
-                      final pos = _hlsPlayer?.state.position ?? Duration.zero;
-                      final target = pos.inSeconds + 10;
-                      _seekTargetTime = target;
-                      _lastSeekByUser = DateTime.now().millisecondsSinceEpoch;
-                      if (mounted) setState(() => _currentPos = Duration(seconds: target));
-                      _hlsPlayer?.seek(Duration(seconds: target));
-                    },
-                    child: const SizedBox.expand(),
+                // ── Double-tap right feedback ──
+                if (_showDoubleTapRight)
+                  Positioned(
+                    right: 20,
+                    top: 0, bottom: 0,
+                    child: Center(
+                      child: AnimatedOpacity(
+                        opacity: _showDoubleTapRight ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.forward_10, color: Colors.white, size: 32),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                // ── Long-press 2x speed indicator ──
+                if (_isLongPressSpeedUp)
+                  Positioned(
+                    top: 12,
+                    left: 0, right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          '2x ▸',
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
 
