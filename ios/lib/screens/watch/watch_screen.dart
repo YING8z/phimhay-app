@@ -343,6 +343,30 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Chọn server mặc định thông minh:
+  /// 1. Server có "4K" trong tên + tập mới nhất
+  /// 2. Server có tập mới nhất
+  /// 3. Server đầu tiên
+  static int pickBestServer(List<Map<String, dynamic>> servers) {
+    if (servers.isEmpty) return 0;
+    int bestIdx = 0;
+    int bestSort = -1;
+    int best4kIdx = -1;
+    int best4kSort = -1;
+    for (int i = 0; i < servers.length; i++) {
+      final name = (servers[i]['server_name'] ?? '').toString();
+      final eps = servers[i]['episodes'] as List<dynamic>? ?? [];
+      if (eps.isEmpty) continue;
+      final lastEp = eps.last;
+      final sortVal = (lastEp['sort_order'] ?? 0) as int;
+      if (sortVal > bestSort) { bestSort = sortVal; bestIdx = i; }
+      if (name.toUpperCase().contains('4K') && sortVal > best4kSort) {
+        best4kSort = sortVal; best4kIdx = i;
+      }
+    }
+    return best4kIdx >= 0 ? best4kIdx : bestIdx;
+  }
+
   // ── Check và skip ad zone ────────────────────────
   int _lastAdCheckTime = 0; // Throttle periodic check
 
@@ -1033,7 +1057,10 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       _servers = rawServers;
       _flatEps = rawEpisodes;
 
-      
+      // Chọn server mặc định thông minh (4K + tập mới nhất)
+      if (_servers.isNotEmpty && widget.serverIdx == 0) {
+        _selectedServer = pickBestServer(_servers);
+      }
 
       // Không check health — tất cả nguồn đều sống (mobile HLS chạy được hết)
       // Reset status từ DB → tất cả là 'ok'

@@ -81,6 +81,30 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     return Provider.of<AuthProvider>(context, listen: false).user ?? {};
   }
 
+  /// Chọn server mặc định thông minh:
+  /// 1. Server có "4K" trong tên + tập mới nhất
+  /// 2. Server có tập mới nhất
+  /// 3. Server đầu tiên
+  static int pickBestServer(List<dynamic> servers) {
+    if (servers.isEmpty) return 0;
+    int bestIdx = 0;
+    int bestSort = -1;
+    int best4kIdx = -1;
+    int best4kSort = -1;
+    for (int i = 0; i < servers.length; i++) {
+      final name = (servers[i]['server_name'] ?? '').toString();
+      final eps = servers[i]['episodes'] as List<dynamic>? ?? [];
+      if (eps.isEmpty) continue;
+      final lastEp = eps.last;
+      final sortVal = (lastEp['sort_order'] ?? 0) as int;
+      if (sortVal > bestSort) { bestSort = sortVal; bestIdx = i; }
+      if (name.toUpperCase().contains('4K') && sortVal > best4kSort) {
+        best4kSort = sortVal; best4kIdx = i;
+      }
+    }
+    return best4kIdx >= 0 ? best4kIdx : bestIdx;
+  }
+
   // Watch progress — "Xem tiếp"
   final MovieService _movieService = MovieService();
   Map<String, dynamic>? _watchProgress; // {episode_id, ep_slug, server_idx, position, duration, ep_name}
@@ -255,6 +279,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       } else {
         _servers  = data['servers']  as List<dynamic>? ?? [];
         _episodes = data['episodes'] as List<dynamic>? ?? [];
+      }
+
+      // Chọn server mặc định thông minh (4K + tập mới nhất)
+      if (_servers.isNotEmpty) {
+        _selectedServer = pickBestServer(_servers);
       }
 
       final related = data['related'] as List<dynamic>? ?? [];
