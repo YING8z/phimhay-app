@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:phimhay_app/services/api_client.dart';
 import '../../config/app_config.dart';
 import '../../config/theme.dart';

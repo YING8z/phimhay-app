@@ -175,10 +175,8 @@ class ApiClient {
         );
       case DioExceptionType.cancel:
         return const ApiException('Yêu cầu đã bị hủy.');
-      case DioExceptionType.connection:
-        return const ApiException('Không thể kết nối máy chủ. Vui lòng kiểm tra mạng.');
       default:
-        return const ApiException('Có lỗi xảy ra. Vui lòng thử lại.');
+        return const ApiException('Không thể kết nối máy chủ. Vui lòng kiểm tra mạng.');
     }
   }
 }
