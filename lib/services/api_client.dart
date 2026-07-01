@@ -102,8 +102,10 @@ class ApiClient {
   }
 }
 
-/// Interceptor: detect Cloudflare challenge page và xử lý gracefully
+/// Interceptor: detect Cloudflare challenge và retry
 class _CloudflareInterceptor extends Interceptor {
+  final int _maxRetries = 1;
+
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     final contentType = response.headers.value('content-type') ?? '';
@@ -118,7 +120,18 @@ class _CloudflareInterceptor extends Interceptor {
           body.contains('Just a moment') ||
           body.contains('Attention Required') ||
           body.contains('Ray ID')) {
-        // Throw lỗi rõ ràng thay vì để app crash khi parse JSON
+        // Retry thay vì reject ngay
+        final retries = response.requestOptions.extra['cf_retries'] ?? 0;
+        if (retries < _maxRetries) {
+          response.requestOptions.extra['cf_retries'] = retries + 1;
+          // Delay 2s rồi retry
+          Future.delayed(const Duration(seconds: 2), () {
+            final dio = Dio();
+            dio.fetch(response.requestOptions).then(handler.resolve).catchError(handler.reject);
+          });
+          return;
+        }
+        // Hết retry → reject
         handler.reject(DioException(
           requestOptions: response.requestOptions,
           response: response,
@@ -133,6 +146,16 @@ class _CloudflareInterceptor extends Interceptor {
     if (response.statusCode == 200 && response.data is String) {
       final body = response.data as String;
       if (body.trimLeft().startsWith('<!') || body.trimLeft().startsWith('<html')) {
+        // Retry thay vì reject ngay
+        final retries = response.requestOptions.extra['cf_retries'] ?? 0;
+        if (retries < _maxRetries) {
+          response.requestOptions.extra['cf_retries'] = retries + 1;
+          Future.delayed(const Duration(seconds: 2), () {
+            final dio = Dio();
+            dio.fetch(response.requestOptions).then(handler.resolve).catchError(handler.reject);
+          });
+          return;
+        }
         handler.reject(DioException(
           requestOptions: response.requestOptions,
           response: response,

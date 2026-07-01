@@ -202,8 +202,13 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           _avatarCtrl.text = u?['avatar']?.toString() ?? '';
         }
       });
-    } catch (_) {
-      if (mounted) setState(() { _error = 'Không thể tải dữ liệu'; _isLoading = false; });
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().contains('401') || e.toString().contains('unauthorized')
+            ? 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'
+            : 'Không thể tải dữ liệu. Kiểm tra mạng và thử lại.';
+        setState(() { _error = msg; _isLoading = false; });
+      }
     }
   }
 
