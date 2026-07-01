@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import '../../config/app_config.dart';
+import 'package:phimhay_app/services/api_client.dart';
 import '../../config/theme.dart';
 import '../../config/responsive.dart';
 import '../../models/movie.dart';
@@ -28,7 +28,7 @@ class ListScreen extends StatefulWidget {
 }
 
 class _ListScreenState extends State<ListScreen> with AutomaticKeepAliveClientMixin {
-  final Dio _dio = Dio();
+  final Dio _dio = ApiClient.dio;
   final ScrollController _scrollController = ScrollController();
 
   List<Movie> _movies = [];
@@ -91,7 +91,7 @@ class _ListScreenState extends State<ListScreen> with AutomaticKeepAliveClientMi
       if (widget.genre != null) params['genre'] = widget.genre;
       if (widget.country != null) params['country'] = widget.country;
 
-      final res = await _dio.get('${AppConfig.apiUrl}/MovieList.php', queryParameters: params);
+      final res = await _dio.get('/MovieList.php', queryParameters: params);
       final data = res.data as Map<String, dynamic>;
       final newMovies = (data['movies'] as List<dynamic>? ?? [])
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
