@@ -68,5 +68,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>com.startapp.sdk.APPLICATION_ID</key>
+	<string>206259683</string>
 </dict>
 </plist>

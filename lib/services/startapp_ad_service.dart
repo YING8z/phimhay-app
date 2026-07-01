@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:startapp_sdk/startapp.dart';
 import 'package:phimhay_app/services/ad_frequency_service.dart';
-import 'package:phimhay_app/services/applovin_ad_service.dart';
 
 class StartAppAdService {
   static final StartAppSdk _sdk = StartAppSdk();
   static StartAppInterstitialAd? _interstitialAd;
+  static StartAppRewardedVideoAd? _rewardedVideoAd;
   static final Map<String, StartAppNativeAd> _nativeAds = {};
   static bool _initialized = false;
 
@@ -17,27 +17,28 @@ class StartAppAdService {
     if (_initialized) return;
     _initialized = true;
 
-    if (Platform.isIOS) {
-      print('[StartApp] Disabled on iOS, initializing Appodeal instead...');
-      await AppLovinAdService.init();
-      return;
-    }
+    final platform = Platform.isIOS ? 'iOS' : (Platform.isAndroid ? 'Android' : 'Unknown');
+    print('[StartApp] Initializing SDK on $platform...');
 
     await AdFrequencyService.init();
-    final platform = Platform.isAndroid ? 'Android' : 'Unknown';
-    print('[StartApp] Initializing SDK on $platform...');
+
     try {
-      await _sdk.setTestAdsEnabled(false);
+      // Enable test ads for debug
+      await _sdk.setTestAdsEnabled(true);
+      print('[StartApp] Test ads enabled on $platform');
       print('[StartApp] SDK initialized OK on $platform');
     } catch (e) {
       print('[StartApp] ERROR init on $platform: $e');
     }
+
     _preloadInterstitial();
+    if (Platform.isIOS) {
+      _preloadRewardedVideo();
+    }
   }
 
   static void _preloadInterstitial() {
-    if (Platform.isIOS) return;
-    final platform = Platform.isAndroid ? 'Android' : 'Unknown';
+    final platform = Platform.isIOS ? 'iOS' : (Platform.isAndroid ? 'Android' : 'Unknown');
     print('[StartApp] Loading interstitial on $platform...');
     _sdk.loadInterstitialAd(
       onAdDisplayed: () {
@@ -59,18 +60,43 @@ class StartAppAdService {
       },
     ).then((ad) {
       _interstitialAd = ad;
-      print('[StartApp] Interstitial loaded OK');
+      print('[StartApp] Interstitial loaded OK on $platform');
     }).onError((err, stack) {
       print('[StartApp] Interstitial FAILED: $err');
       _interstitialAd = null;
     });
   }
 
+  static void _preloadRewardedVideo() {
+    print('[StartApp] Loading rewarded video on iOS...');
+    _sdk.loadRewardedVideoAd(
+      onAdNotDisplayed: () {
+        print('[StartApp] Rewarded AD_NOT_DISPLAYED');
+        _rewardedVideoAd?.dispose();
+        _rewardedVideoAd = null;
+      },
+      onAdHidden: () {
+        print('[StartApp] Rewarded AD_HIDDEN');
+        _rewardedVideoAd?.dispose();
+        _rewardedVideoAd = null;
+        _preloadRewardedVideo();
+      },
+      onVideoCompleted: () {
+        print('[StartApp] Rewarded VIDEO_COMPLETED - reward earned');
+      },
+    ).then((ad) {
+      _rewardedVideoAd = ad;
+      print('[StartApp] Rewarded video loaded OK on iOS');
+    }).onError((err, stack) {
+      print('[StartApp] Rewarded video FAILED: $err');
+      _rewardedVideoAd = null;
+    });
+  }
+
   // ── Native Ad ──────────────────────────────────────
   static void loadNativeAd(String tag) {
-    if (Platform.isIOS) return;
     if (_nativeAds.containsKey(tag)) return;
-    final platform = Platform.isAndroid ? 'Android' : 'Unknown';
+    final platform = Platform.isIOS ? 'iOS' : (Platform.isAndroid ? 'Android' : 'Unknown');
     print('[StartApp] Loading native ad: $tag on $platform');
     _sdk.loadNativeAd(
       onAdImpression: () {},
@@ -84,22 +110,16 @@ class StartAppAdService {
   }
 
   static StartAppNativeAd? getNativeAd(String tag) {
-    if (Platform.isIOS) return null;
     return _nativeAds[tag];
   }
 
   static void disposeNativeAd(String tag) {
-    if (Platform.isIOS) return;
     _nativeAds[tag]?.dispose();
     _nativeAds.remove(tag);
   }
 
   // ── Frequency-capped interstitial ──────────────────
   static void showInterstitialIfAllowed(BuildContext context, {VoidCallback? onDone}) {
-    if (Platform.isIOS) {
-      AppLovinAdService.showInterstitialIfAllowed(context, onDone: onDone);
-      return;
-    }
     if (!AdFrequencyService.canShowInterstitial()) {
       print('[StartApp] Interstitial blocked by frequency cap (${AdFrequencyService.remainingAds} remaining)');
       onDone?.call();
@@ -130,23 +150,32 @@ class StartAppAdService {
 
   // ── Pre-watch flow ─────────────────────────────────
   static void showBeforeWatch(BuildContext context, Function onReady) {
-    if (Platform.isIOS) {
-      AppLovinAdService.showBeforeWatch(context, onReady);
-      return;
-    }
     print('[StartApp] showBeforeWatch called');
     print('[StartApp] interstitialAd=${_interstitialAd != null ? "READY" : "null"}');
     _showInterstitialAd(context, onReady);
   }
 
-  // Show rewarded ad (iOS) - higher eCPM
+  // Show rewarded ad (iOS - higher eCPM)
   static void showRewardedBeforeAction(BuildContext context, {VoidCallback? onReward, VoidCallback? onDone}) {
-    if (Platform.isIOS) {
-      AppLovinAdService.showRewardedBeforeAction(context, onReward: onReward, onDone: onDone);
-      return;
+    if (Platform.isIOS && _rewardedVideoAd != null) {
+      print('[StartApp] Showing rewarded video on iOS...');
+      final ad = _rewardedVideoAd;
+      _rewardedVideoAd = null;
+      ad!.show().then((_) {
+        print('[StartApp] Rewarded video shown on iOS');
+        onReward?.call();
+        onDone?.call();
+        _preloadRewardedVideo();
+      }).onError((err, stack) {
+        print('[StartApp] Rewarded video show FAILED: $err');
+        // Fallback to interstitial
+        showInterstitialIfAllowed(context, onDone: onDone);
+      });
+    } else {
+      // Fallback to interstitial
+      print('[StartApp] No rewarded video available, using interstitial');
+      showBeforeWatch(context, (onDone ?? () {}) as Function);
     }
-    // Android: use StartApp rewarded
-    showBeforeWatch(context, () => onDone?.call());
   }
 
   static void _showInterstitialAd(BuildContext context, Function onReady) {
@@ -184,6 +213,19 @@ class StartAppAdService {
       transitionsBuilder: (_, a, __, child) =>
           FadeTransition(opacity: a, child: child),
     ));
+  }
+
+  // ── Debug Info ─────────────────────────────────────
+  static Future<Map<String, dynamic>> getDebugInfo() async {
+    final platform = Platform.isIOS ? 'iOS' : (Platform.isAndroid ? 'Android' : 'Unknown');
+    return {
+      'platform': platform,
+      'initialized': _initialized,
+      'interstitialReady': _interstitialAd != null,
+      'rewardedReady': _rewardedVideoAd != null,
+      'nativeAdsCount': _nativeAds.length,
+      'appId': Platform.isIOS ? '206259683' : 'Android App ID',
+    };
   }
 }
 

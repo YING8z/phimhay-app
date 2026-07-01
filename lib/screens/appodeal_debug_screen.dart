@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:stack_appodeal_flutter/stack_appodeal_flutter.dart';
+import 'package:startapp_sdk/startapp.dart';
+import 'package:phimhay_app/services/startapp_ad_service.dart';
 
 class AppodealDebugScreen extends StatefulWidget {
   const AppodealDebugScreen({super.key});
@@ -17,114 +18,149 @@ class _AppodealDebugScreenState extends State<AppodealDebugScreen> {
   void _log(String msg) {
     final ts = DateTime.now().toString().substring(11, 19);
     setState(() => _logs.add('[$ts] $msg'));
-    print('[AppodealDebug] $msg');
+    print('[StartAppDebug] $msg');
   }
 
   Future<void> _getDebugInfo() async {
     _log('Fetching debug info...');
     try {
-      final canShowInterstitial = await Appodeal.canShow(AppodealAdType.Interstitial);
-      final canShowBanner = await Appodeal.canShow(AppodealAdType.Banner);
-      final canShowRewarded = await Appodeal.canShow(AppodealAdType.RewardedVideo);
-
-      final isLoadedInterstitial = await Appodeal.isLoaded(AppodealAdType.Interstitial);
-      final isLoadedBanner = await Appodeal.isLoaded(AppodealAdType.Banner);
-      final isLoadedRewarded = await Appodeal.isLoaded(AppodealAdType.RewardedVideo);
-
-      setState(() => _debugInfo = {
-        'canShow_interstitial': canShowInterstitial,
-        'canShow_banner': canShowBanner,
-        'canShow_rewardedVideo': canShowRewarded,
-        'isLoaded_interstitial': isLoadedInterstitial,
-        'isLoaded_banner': isLoadedBanner,
-        'isLoaded_rewardedVideo': isLoadedRewarded,
-      });
+      final info = await StartAppAdService.getDebugInfo();
+      setState(() => _debugInfo = info);
       _log('Debug info received ✓');
+      _log('Platform: ${info['platform']}');
+      _log('App ID: ${info['appId']}');
+      _log('Interstitial ready: ${info['interstitialReady']}');
+      _log('Rewarded ready: ${info['rewardedReady']}');
     } catch (e) {
       _log('ERROR getting debug info: $e');
     }
   }
 
   Future<void> _initSdk() async {
-    _log('Initializing SDK...');
+    _log('Initializing StartApp SDK...');
     try {
-      await Appodeal.initialize(
-        appKey: '3d38b6d1147aafee7f29a80bd9d3c675598ccd6d705c8d51',
-        adTypes: [
-          AppodealAdType.Interstitial,
-          AppodealAdType.RewardedVideo,
-          AppodealAdType.Banner,
-        ],
-        onInitializationFinished: (errors) {
-          if (errors != null && errors.isNotEmpty) {
-            _log('Init errors: $errors');
-          } else {
-            _log('SDK initialized ✓');
-          }
-        },
-      );
+      StartAppAdService.init();
+      _log('SDK init called ✓');
+      await Future.delayed(const Duration(seconds: 2));
       await _getDebugInfo();
     } catch (e) {
       _log('ERROR initializing: $e');
     }
   }
 
-  Future<void> _cacheAndShow(AppodealAdType type, String name) async {
-    _log('--- $name ---');
-    _log('Caching $name...');
+  Future<void> _loadInterstitial() async {
+    _log('Loading interstitial ad...');
     try {
-      Appodeal.cache(type);
-      _log('Cache $name called ✓');
+      StartAppAdService.sdk.loadInterstitialAd(
+        onAdDisplayed: () {
+          _log('Interstitial AD_DISPLAYED');
+        },
+        onAdNotDisplayed: () {
+          _log('Interstitial AD_NOT_DISPLAYED');
+        },
+        onAdHidden: () {
+          _log('Interstitial AD_HIDDEN');
+        },
+        onAdClicked: () {
+          _log('Interstitial AD_CLICKED');
+        },
+      ).then((ad) {
+        _log('Interstitial loaded ✓');
+        _getDebugInfo();
+      }).onError((err, stack) {
+        _log('ERROR loading interstitial: $err');
+      });
     } catch (e) {
-      _log('ERROR caching $name: $e');
+      _log('ERROR: $e');
     }
-
-    await Future.delayed(const Duration(seconds: 2));
-    await _getDebugInfo();
-
-    _log('Showing $name...');
-    try {
-      Appodeal.show(type);
-      _log('Show $name called ✓');
-    } catch (e) {
-      _log('ERROR showing $name: $e');
-    }
-
-    await Future.delayed(const Duration(seconds: 1));
-    await _getDebugInfo();
   }
 
-  Future<void> _showBanner() async {
-    _log('--- Banner ---');
-    _log('Caching banner...');
+  Future<void> _showInterstitial() async {
+    _log('Showing interstitial ad...');
     try {
-      Appodeal.cache(AppodealAdType.Banner);
-      _log('Cache banner called ✓');
+      StartAppAdService.showInterstitialIfAllowed(
+        context,
+        onDone: () {
+          _log('Interstitial flow completed');
+          _getDebugInfo();
+        },
+      );
     } catch (e) {
-      _log('ERROR caching banner: $e');
+      _log('ERROR showing interstitial: $e');
     }
-
-    await Future.delayed(const Duration(seconds: 2));
-    await _getDebugInfo();
-
-    _log('Showing banner...');
-    try {
-      Appodeal.show(AppodealAdType.BannerBottom);
-      _log('Show banner called ✓');
-    } catch (e) {
-      _log('ERROR showing banner: $e');
-    }
-
-    await Future.delayed(const Duration(seconds: 1));
-    await _getDebugInfo();
   }
 
-  Future<void> _hideBanner() async {
+  Future<void> _loadRewardedVideo() async {
+    _log('Loading rewarded video...');
     try {
-      Appodeal.hide(AppodealAdType.BannerBottom);
-      _log('Banner hidden ✓');
+      StartAppAdService.sdk.loadRewardedVideoAd(
+        onAdNotDisplayed: () {
+          _log('Rewarded AD_NOT_DISPLAYED');
+        },
+        onAdHidden: () {
+          _log('Rewarded AD_HIDDEN');
+        },
+        onVideoCompleted: () {
+          _log('Rewarded VIDEO_COMPLETED - reward earned!');
+        },
+      ).then((ad) {
+        _log('Rewarded video loaded ✓');
+        _getDebugInfo();
+      }).onError((err, stack) {
+        _log('ERROR loading rewarded: $err');
+      });
     } catch (e) {
-      _log('ERROR hiding banner: $e');
+      _log('ERROR: $e');
+    }
+  }
+
+  Future<void> _showRewardedVideo() async {
+    _log('Showing rewarded video...');
+    try {
+      StartAppAdService.showRewardedBeforeAction(
+        context,
+        onReward: () {
+          _log('Reward earned!');
+        },
+        onDone: () {
+          _log('Rewarded flow completed');
+          _getDebugInfo();
+        },
+      );
+    } catch (e) {
+      _log('ERROR showing rewarded: $e');
+    }
+  }
+
+  Future<void> _loadBanner() async {
+    _log('Loading banner ad...');
+    try {
+      StartAppAdService.sdk.loadBannerAd(StartAppBannerType.BANNER).then((bannerAd) {
+        _log('Banner loaded ✓');
+        // Show banner in a dialog for testing
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Banner Ad Test'),
+              content: SizedBox(
+                height: 100,
+                child: StartAppBanner(bannerAd),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          );
+        }
+      }).onError((err, stack) {
+        _log('ERROR loading banner: $err');
+      });
+    } catch (e) {
+      _log('ERROR: $e');
     }
   }
 
@@ -132,10 +168,18 @@ class _AppodealDebugScreenState extends State<AppodealDebugScreen> {
   IconData _boolIcon(bool? v) => v == true ? Icons.check_circle : Icons.cancel;
 
   @override
+  void initState() {
+    super.initState();
+    _log('StartApp Debug Screen opened');
+    _log('iOS App ID: 206259683');
+    _getDebugInfo();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Appodeal Debug'),
+        title: const Text('StartApp Debug'),
         backgroundColor: Colors.black87,
         actions: [
           IconButton(
@@ -170,25 +214,34 @@ class _AppodealDebugScreenState extends State<AppodealDebugScreen> {
                 Row(
                   children: [
                     Expanded(child: ElevatedButton(
-                      onPressed: () => _cacheAndShow(AppodealAdType.Interstitial, 'Interstitial'),
-                      child: const Text('Interstitial'),
+                      onPressed: _loadInterstitial,
+                      child: const Text('Load Interstitial'),
                     )),
                     const SizedBox(width: 8),
                     Expanded(child: ElevatedButton(
-                      onPressed: _showBanner,
-                      child: const Text('Banner'),
-                    )),
-                    const SizedBox(width: 8),
-                    Expanded(child: ElevatedButton(
-                      onPressed: () => _cacheAndShow(AppodealAdType.RewardedVideo, 'Rewarded'),
-                      child: const Text('Rewarded'),
+                      onPressed: _showInterstitial,
+                      child: const Text('Show Interstitial'),
                     )),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: ElevatedButton(
+                      onPressed: _loadRewardedVideo,
+                      child: const Text('Load Rewarded'),
+                    )),
+                    const SizedBox(width: 8),
+                    Expanded(child: ElevatedButton(
+                      onPressed: _showRewardedVideo,
+                      child: const Text('Show Rewarded'),
+                    )),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 ElevatedButton(
-                  onPressed: _hideBanner,
-                  child: const Text('Hide Banner'),
+                  onPressed: _loadBanner,
+                  child: const Text('Show Banner'),
                 ),
               ],
             ),
@@ -203,12 +256,15 @@ class _AppodealDebugScreenState extends State<AppodealDebugScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Platform: ${Platform.isIOS ? "iOS" : "Android"}',
+                  Text('Platform: ${_debugInfo['platform']}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text('App ID: ${_debugInfo['appId']}',
                       style: const TextStyle(color: Colors.white70, fontSize: 11)),
                   const SizedBox(height: 6),
-                  _buildInfoRow('Interstitial', 'interstitial'),
-                  _buildInfoRow('Banner', 'banner'),
-                  _buildInfoRow('Rewarded', 'rewardedVideo'),
+                  _buildInfoRow('Interstitial', _debugInfo['interstitialReady']),
+                  _buildInfoRow('Rewarded Video', _debugInfo['rewardedReady']),
+                  Text('Native Ads: ${_debugInfo['nativeAdsCount']}',
+                      style: const TextStyle(color: Colors.white, fontSize: 12)),
                 ],
               ),
             ),
@@ -236,19 +292,14 @@ class _AppodealDebugScreenState extends State<AppodealDebugScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String prefix) {
-    final canShow = _debugInfo['canShow_$prefix'] as bool?;
-    final isLoaded = _debugInfo['isLoaded_$prefix'] as bool?;
-
+  Widget _buildInfoRow(String label, bool? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          SizedBox(width: 90, child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))),
-          Icon(_boolIcon(canShow), color: _boolColor(canShow), size: 14),
-          Text(' canShow ', style: TextStyle(color: Colors.white54, fontSize: 10)),
-          Icon(_boolIcon(isLoaded), color: _boolColor(isLoaded), size: 14),
-          Text(' isLoaded', style: TextStyle(color: Colors.white54, fontSize: 10)),
+          SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))),
+          Icon(_boolIcon(value), color: _boolColor(value), size: 14),
+          Text(' ${value == true ? "READY" : "NOT READY"}', style: TextStyle(color: value == true ? Colors.green : Colors.red, fontSize: 10)),
         ],
       ),
     );
