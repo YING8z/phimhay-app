@@ -32,11 +32,22 @@ class _WatchRoomScreenState extends State<WatchRoomScreen> with WidgetsBindingOb
     return shortestSide >= 600;
   }
 
+  static bool get _isLargeIpad {
+    final size = WidgetsBinding.instance.window.physicalSize;
+    final shortestSide = size.shortestSide / WidgetsBinding.instance.window.devicePixelRatio;
+    return shortestSide > 750;
+  }
+
   static void _restoreOrientations() {
-    if (_isTablet) {
+    if (_isLargeIpad) {
       SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp, DeviceOrientation.portraitDown,
-        DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight,
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else if (_isTablet) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
       ]);
     } else {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);

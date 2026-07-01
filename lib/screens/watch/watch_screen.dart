@@ -71,13 +71,25 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
     return shortestSide >= 600;
   }
 
+  /// iPad lớn (Pro 11"+): shortestSide > 750 → landscape-first khi xem phim
+  static bool get _isLargeIpad {
+    final size = WidgetsBinding.instance.window.physicalSize;
+    final shortestSide = size.shortestSide / WidgetsBinding.instance.window.devicePixelRatio;
+    return shortestSide > 750;
+  }
+
   static void _restoreOrientations() {
-    if (_isTablet) {
+    if (_isLargeIpad) {
+      // iPad lớn: giữ landscape + portrait (user có thể xoay thoải mái)
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
+      ]);
+    } else if (_isTablet) {
+      // iPad Mini: portrait lock giống phone
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
       ]);
     } else {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -206,6 +218,18 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+
+    // iPad lớn: tự chuyển landscape khi mở watch screen
+    if (_isLargeIpad && !_isLandscape) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]);
+        }
+      });
+    }
 
     if (widget.initialPosition > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2015,7 +2039,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             Positioned(bottom: 0, left: 0, right: 0, child: _buildPortraitMiniControls()),
 
           // ── Loading — subtle bottom bar instead of full-screen spinner ──
-          if (_isLoading)
+          if (_isLoading && !_playerReady)
             Positioned(
               bottom: 0, left: 0, right: 0,
               child: LinearProgressIndicator(

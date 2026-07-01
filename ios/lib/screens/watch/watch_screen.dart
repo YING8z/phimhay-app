@@ -2047,7 +2047,7 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
             Positioned(bottom: 0, left: 0, right: 0, child: _buildPortraitMiniControls()),
 
           // ── Loading — subtle bottom bar ──
-          if (_isLoading)
+          if (_isLoading && !_playerReady)
             Positioned(
               bottom: 0, left: 0, right: 0,
               child: LinearProgressIndicator(

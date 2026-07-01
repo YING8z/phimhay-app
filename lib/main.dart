@@ -27,17 +27,19 @@ void main() async {
   // Tablet cho phep xoay tu do, mobile chi portrait
   final size = WidgetsBinding.instance.window.physicalSize;
   final shortestSide = size.shortestSide / WidgetsBinding.instance.window.devicePixelRatio;
+  final isLargeIpad = shortestSide > 750;
   final isTablet = shortestSide >= 600;
 
   await SystemChrome.setPreferredOrientations(
-    isTablet
+    isLargeIpad
         ? [
             DeviceOrientation.portraitUp,
-            DeviceOrientation.portraitDown,
             DeviceOrientation.landscapeLeft,
             DeviceOrientation.landscapeRight,
           ]
-        : [DeviceOrientation.portraitUp],
+        : isTablet
+            ? [DeviceOrientation.portraitUp]
+            : [DeviceOrientation.portraitUp],
   );
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
