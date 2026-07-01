@@ -57,7 +57,6 @@ class ApiClient {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, accessToken);
     await prefs.setString(_refreshKey, refreshToken);
-    print('[ApiClient] Tokens saved. isAuthenticated=$isAuthenticated');
   }
 
   static Future<void> clearTokens() async {
@@ -108,7 +107,6 @@ class _AuthInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (ApiClient._accessToken != null && ApiClient._accessToken!.isNotEmpty) {
       options.queryParameters['auth_token'] = ApiClient._accessToken;
-      print('[Auth] Token → ${options.path}');
     }
     handler.next(options);
   }
@@ -116,7 +114,6 @@ class _AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 401 && ApiClient._refreshToken != null) {
-      print('[Auth] 401 → trying refresh...');
       try {
         final dio = Dio(BaseOptions(baseUrl: AppConfig.apiUrl));
         final res = await dio.post('/mobile_auth.php', data: {

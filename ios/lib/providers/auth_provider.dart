@@ -43,7 +43,6 @@ class AuthProvider extends ChangeNotifier {
     try {
       final res = await ApiClient.post('/mobile_auth.php', data: {'action': 'status'});
       final data = res.data;
-      print('[Auth] Status: $data');
       if (data is Map<String, dynamic> && data['logged_in'] == true) {
         _user = data;
         await _saveToStorage();
@@ -68,7 +67,6 @@ class AuthProvider extends ChangeNotifier {
         'password': password,
       });
       final data = res.data as Map<String, dynamic>;
-      print('[Auth] Login: success=${data['success']}, token=${data['access_token'] != null ? 'YES' : 'NO'}');
       if (data['success'] == true) {
         await ApiClient.setTokens(
           accessToken: data['access_token'] ?? '',
@@ -87,7 +85,6 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('[Auth] Login error: $e');
       _error = 'Lỗi kết nối. Vui lòng kiểm tra mạng.';
       _isLoading = false;
       notifyListeners();

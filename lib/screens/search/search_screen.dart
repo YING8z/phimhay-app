@@ -547,6 +547,7 @@ class _SearchScreenState extends State<SearchScreen> with AutomaticKeepAliveClie
   }
 
   Widget _buildMovieCard(Movie m) {
+    final thumbUrl = m.thumbUrl ?? m.posterUrl ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -557,8 +558,10 @@ class _SearchScreenState extends State<SearchScreen> with AutomaticKeepAliveClie
               fit: StackFit.expand,
               children: [
                 CachedNetworkImage(
-                  imageUrl: m.thumbUrl ?? '',
+                  imageUrl: thumbUrl,
                   fit: BoxFit.cover,
+                  memCacheWidth: 280,
+                  cacheKey: '${m.slug}_${m.id}_thumb',
                   placeholder: (_, __) => Container(color: AppTheme.bgCard),
                   errorWidget: (_, __, ___) => Container(color: AppTheme.bgCard, child: const Icon(Icons.movie, color: AppTheme.textMuted)),
                 ),
