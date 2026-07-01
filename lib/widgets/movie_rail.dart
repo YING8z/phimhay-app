@@ -3,8 +3,6 @@ import 'package:phimhay_app/config/theme.dart';
 import 'package:phimhay_app/models/movie.dart';
 import 'package:phimhay_app/widgets/movie_card.dart';
 import 'package:phimhay_app/widgets/top_rank_card.dart';
-import 'package:phimhay_app/widgets/native_ad_card.dart';
-import 'package:phimhay_app/services/startapp_ad_service.dart';
 
 class MovieRail extends StatefulWidget {
   final String title;
@@ -29,30 +27,11 @@ class MovieRail extends StatefulWidget {
 }
 
 class _MovieRailState extends State<MovieRail> {
-  late final String _adTag;
-
-  @override
-  void initState() {
-    super.initState();
-    _adTag = 'rail_${widget.title.hashCode}';
-    if (widget.movies.length > 5) {
-      StartAppAdService.loadNativeAd(_adTag);
-    }
-  }
-
-  @override
-  void dispose() {
-    StartAppAdService.disposeNativeAd(_adTag);
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (widget.movies.isEmpty) return const SizedBox.shrink();
 
-    final nativeAd = StartAppAdService.getNativeAd(_adTag);
-    final hasNative = nativeAd != null && widget.movies.length > 5;
-    final totalItems = widget.movies.length + (hasNative ? 1 : 0);
+    final totalItems = widget.movies.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,15 +77,11 @@ class _MovieRailState extends State<MovieRail> {
             itemCount: totalItems,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
-              if (hasNative && index == 5) {
-                return NativeAdCard(nativeAd: nativeAd);
-              }
-              final movieIndex = hasNative && index > 5 ? index - 1 : index;
-              final movie = widget.movies[movieIndex];
+              final movie = widget.movies[index];
               if (widget.showRank) {
                 return TopRankCard(
                   movie: movie,
-                  rank: movieIndex + 1,
+                  rank: index + 1,
                   onTap: () => widget.onMovieTap?.call(movie),
                 );
               }

@@ -22,8 +22,6 @@ import '../profile/profile_screen.dart';
 import '../watch_party/watch_party_screen.dart';
 import '../notification/notification_screen.dart';
 import '../actors/actors_list_screen.dart';
-import '../../services/startapp_ad_service.dart';
-import '../../widgets/startapp_banner_widget.dart';
 import '../../widgets/collection_carousel.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -47,9 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeProvider>().fetchHome();
     });
-
-    // Pre-load interstitial ad — khi user duyệt home 5-10s thì ad đã ready
-    StartAppAdService.init();
   }
 
   /// Convert chip name → API filter param

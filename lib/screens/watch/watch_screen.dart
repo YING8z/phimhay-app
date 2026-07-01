@@ -31,8 +31,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:screen_brightness/screen_brightness.dart';
-import 'package:phimhay_app/services/startapp_ad_service.dart';
-import 'package:phimhay_app/widgets/startapp_banner_widget.dart';
+import 'package:phimhay_app/services/smartlink_service.dart';
 import 'package:phimhay_app/services/m3u8_ad_parser.dart';
 import 'package:phimhay_app/services/srt_parser.dart';
 
@@ -1494,12 +1493,9 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   // ── Chuyển tập ────────────────────────────────────
   void _switchEpisode(Map<String, dynamic> ep, {bool keepPosition = false}) {
-    // Show rewarded on episode switch (higher eCPM than interstitial)
-    StartAppAdService.showRewardedBeforeAction(
+    // Show smartlink on episode switch
+    SmartlinkService.showSmartlinkBeforeAction(
       context,
-      onReward: () {
-        // User watched rewarded ad - give bonus (optional)
-      },
       onDone: () {
         _doSwitchEpisode(ep, keepPosition: keepPosition);
       },

@@ -11,8 +11,7 @@ import '../../widgets/bottom_nav.dart';
 import '../home/home_screen.dart';
 import '../auth/auth_screen.dart';
 import '../actors/actors_list_screen.dart';
-import '../../services/startapp_ad_service.dart';
-import '../../widgets/startapp_banner_widget.dart';
+import '../../services/smartlink_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -37,8 +36,6 @@ class _NotificationScreenState extends State<NotificationScreen> with AutomaticK
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Show interstitial when opening notification screen
-      StartAppAdService.showInterstitialIfAllowed(context);
       final auth = context.read<AuthProvider>();
       if (auth.isLoggedIn) {
         _fetchData();

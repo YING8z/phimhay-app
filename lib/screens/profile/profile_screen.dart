@@ -19,8 +19,7 @@ import 'package:phimhay_app/screens/search/search_screen.dart';
 import 'package:phimhay_app/screens/schedule/schedule_screen.dart';
 import 'package:phimhay_app/screens/list/list_screen.dart';
 import 'package:phimhay_app/widgets/bottom_nav.dart';
-import 'package:phimhay_app/services/startapp_ad_service.dart';
-import 'package:phimhay_app/widgets/startapp_banner_widget.dart';
+import 'package:phimhay_app/services/smartlink_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool isTab;
@@ -593,7 +592,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           final pos = (m['position'] as int?) ?? 0;
           final epName = m['ep_name']?.toString() ?? '';
           return _glassTap(
-            onTap: () => StartAppAdService.showBeforeWatch(context, () => Navigator.push(context, MaterialPageRoute(builder: (_) => WatchScreen(
+            onTap: () => SmartlinkService.showSmartlinkBeforeAction(context, onDone: () => Navigator.push(context, MaterialPageRoute(builder: (_) => WatchScreen(
               movieId: movieId,
               episodeId: episodeId > 0 ? episodeId : 1,
               serverIdx: serverIdx,
@@ -676,7 +675,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       final serverIdx = (m['server_idx'] as int?) ?? 0;
       final pos = (m['position'] as int?) ?? 0; final last = _timeAgo(m['last_watched']?.toString());
       return _glassTap(
-        onTap: () => StartAppAdService.showBeforeWatch(context, () => Navigator.push(context, MaterialPageRoute(builder: (_) => WatchScreen(
+        onTap: () => SmartlinkService.showSmartlinkBeforeAction(context, onDone: () => Navigator.push(context, MaterialPageRoute(builder: (_) => WatchScreen(
           movieId: movieId,
           episodeId: episodeId > 0 ? episodeId : 1,
           serverIdx: serverIdx,
