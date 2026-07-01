@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'api_client.dart';
 
 class SubtitleEntry {
   final int index;
@@ -15,8 +17,6 @@ class SubtitleEntry {
 }
 
 class SrtParser {
-  final Dio _dio = Dio();
-
   /// Parse SRT content from string
   List<SubtitleEntry> parse(String content) {
     final entries = <SubtitleEntry>[];
@@ -75,12 +75,13 @@ class SrtParser {
   /// Fetch and parse SRT from URL
   Future<List<SubtitleEntry>> fetchAndParse(String url) async {
     try {
-      final response = await _dio.get(
+      final response = await ApiClient.dio.get(
         url,
         options: Options(responseType: ResponseType.plain),
       );
       return parse(response.data.toString());
     } catch (e) {
+      if (kDebugMode) print('[SrtParser] fetchAndParse error: $e');
       return [];
     }
   }

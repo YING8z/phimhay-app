@@ -253,21 +253,38 @@ class _WatchScreenState extends State<WatchScreen> with WidgetsBindingObserver {
 
   // ── Load subtitles for current episode ──────────────────
   Future<void> _loadSubtitles(Map<String, dynamic> episode) async {
-    // Try API field first
-    final subUrl = (episode['link_sub'] ?? episode['subtitle_url'] ?? '').toString().trim();
-    final urlsToTry = <String>[];
-    if (subUrl.isNotEmpty) urlsToTry.add(subUrl);
-
-    // Convention URL: /art/{slug}/{slug}_vi.srt
     final slug = widget.movieSlug ?? '';
-    if (slug.isNotEmpty) {
-      urlsToTry.add('${AppConfig.baseUrl}/art/$slug/${slug}_vi.srt');
-    }
-
-    if (urlsToTry.isEmpty) {
+    if (slug.isEmpty) {
       setState(() { _subtitles = []; _subtitleEnabled = false; });
       return;
     }
+
+    // 1. Try subtitles.php API first (most reliable — lists all available SRT files)
+    try {
+      final res = await ApiClient.get('/subtitles.php', params: {'slug': slug});
+      final data = res.data;
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        final list = data['subtitles'] as List<dynamic>? ?? [];
+        for (final item in list) {
+          final srtUrl = (item['url'] ?? '').toString();
+          if (srtUrl.isEmpty) continue;
+          try {
+            final subs = await _srtParser.fetchAndParse(srtUrl);
+            if (mounted && subs.isNotEmpty) {
+              _currentSubtitleUrl = srtUrl;
+              setState(() { _subtitles = subs; _subtitleEnabled = true; });
+              return;
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fallback: try convention URLs
+    final urlsToTry = <String>[
+      '${AppConfig.baseUrl}/art/$slug/${slug}_vi.srt',
+      '${AppConfig.baseUrl}/art/$slug/${slug}.srt',
+    ];
 
     for (final url in urlsToTry) {
       try {
