@@ -190,15 +190,18 @@ class ApiClient {
 class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // Thêm Bearer token nếu có
     if (ApiClient._accessToken != null) {
+      // Gửi token qua nhiều cách để Cloudflare không strip
       options.headers['Authorization'] = 'Bearer ${ApiClient._accessToken}';
-      // Fallback header (Cloudflare có thể strip Authorization)
       options.headers['X-Auth-Token'] = ApiClient._accessToken;
+      // Query parameter — Cloudflare KHÔNG strip query params
+      options.queryParameters['auth_token'] = ApiClient._accessToken;
       print('[AuthInterceptor] Sending token to ${options.path}');
     } else {
       print('[AuthInterceptor] NO TOKEN for ${options.path}');
     }
+    handler.next(options);
+  }
     handler.next(options);
   }
 
