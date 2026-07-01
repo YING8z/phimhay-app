@@ -15,25 +15,18 @@ class SmartlinkInterstitialScreen extends StatefulWidget {
 class _SmartlinkInterstitialScreenState extends State<SmartlinkInterstitialScreen> {
   static const String _smartlinkUrl = 'https://omg10.com/4/11224550';
 
-  InAppWebViewController? _webViewController;
   bool _isLoading = true;
   double _loadingProgress = 0;
   bool _canProceed = false;
-  String _currentUrl = _smartlinkUrl;
+  bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
-    // Prevent back button
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.black,
       statusBarIconBrightness: Brightness.light,
     ));
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   void _onLoadComplete() {
@@ -45,44 +38,47 @@ class _SmartlinkInterstitialScreenState extends State<SmartlinkInterstitialScree
     }
   }
 
-  void _proceedToMovie() {
-    if (!mounted) return;
-    // Call onComplete first (pushes WatchScreen), then pop this screen
-    widget.onComplete();
-    Navigator.pop(context);
+  void _finish() {
+    if (_navigated) return;
+    _navigated = true;
+    // Pop first
+    Navigator.of(context).pop();
+    // Then call onComplete after pop completes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onComplete();
+    });
   }
 
-  void _showBackWarning() {
+  void _showWarning() {
     if (!mounted) return;
     showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A2E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Đợi quảng cáo loading',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            'Vì sự duy trì của app, admin cần có tiền quảng cáo.\n\n'
-            'Nhờ mọi người đợi link quảng cáo loading xong thì sẽ xem phim được nha.\n\n'
-            'Admin cảm ơn mọi người.',
-            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-          ),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF5921E),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Đã hiểu'),
-            ),
-          ],
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Đợi quảng cáo loading',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-      );
+        content: const Text(
+          'Vì sự duy trì của app, admin cần có tiền quảng cáo.\n\n'
+          'Nhờ mọi người đợi link quảng cáo loading xong thì sẽ xem phim được nha.\n\n'
+          'Admin cảm ơn mọi người.',
+          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF5921E),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -92,9 +88,9 @@ class _SmartlinkInterstitialScreenState extends State<SmartlinkInterstitialScree
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (_canProceed) {
-          _proceedToMovie();
+          _finish();
         } else {
-          _showBackWarning();
+          _showWarning();
         }
       },
       child: Scaffold(
@@ -104,23 +100,14 @@ class _SmartlinkInterstitialScreenState extends State<SmartlinkInterstitialScree
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 color: Colors.black,
                 child: Row(
                   children: [
-                    // Back button
                     IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      onPressed: _canProceed
-                          ? () => _proceedToMovie()
-                          : () => _showBackWarning(),
+                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                      onPressed: _canProceed ? _finish : _showWarning,
                     ),
-                    const SizedBox(width: 8),
-                    // Title
                     Expanded(
                       child: Text(
                         _canProceed ? 'Sẵn sàng xem phim' : 'Đợi quảng cáo...',
@@ -131,18 +118,14 @@ class _SmartlinkInterstitialScreenState extends State<SmartlinkInterstitialScree
                         ),
                       ),
                     ),
-                    // Close button (X)
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                      onPressed: _canProceed
-                          ? () => _proceedToMovie()
-                          : () => _showBackWarning(),
+                      icon: const Icon(Icons.close, color: Colors.white, size: 22),
+                      onPressed: _canProceed ? _finish : _showWarning,
                     ),
                   ],
                 ),
               ),
 
-              // Loading indicator
               if (_isLoading)
                 LinearProgressIndicator(
                   value: _loadingProgress > 0 ? _loadingProgress : null,
@@ -151,7 +134,6 @@ class _SmartlinkInterstitialScreenState extends State<SmartlinkInterstitialScree
                   minHeight: 3,
                 ),
 
-              // WebView
               Expanded(
                 child: InAppWebView(
                   initialUrlRequest: URLRequest(url: WebUri(_smartlinkUrl)),
@@ -159,74 +141,49 @@ class _SmartlinkInterstitialScreenState extends State<SmartlinkInterstitialScree
                     javaScriptEnabled: true,
                     mediaPlaybackRequiresUserGesture: false,
                     allowsInlineMediaPlayback: true,
-                    useOnLoadResource: true,
                     supportZoom: false,
-                    useWideViewPort: true,
-                    loadWithOverviewMode: true,
                     transparentBackground: true,
                   ),
-                  onWebViewCreated: (controller) {
-                    _webViewController = controller;
-                  },
-                  onLoadStart: (controller, url) {
-                    if (mounted) {
-                      setState(() {
-                        _currentUrl = url.toString();
-                      });
-                    }
-                  },
                   onProgressChanged: (controller, progress) {
                     if (mounted) {
                       setState(() {
                         _loadingProgress = progress / 100;
                       });
-
-                      // Mark as complete when progress reaches 100%
                       if (progress >= 100) {
-                        // Wait a bit more for any redirects
-                        Future.delayed(const Duration(seconds: 2), () {
-                          _onLoadComplete();
-                        });
+                        Future.delayed(const Duration(seconds: 2), _onLoadComplete);
                       }
                     }
                   },
                   onLoadStop: (controller, url) async {
-                    // Wait for page to fully load
                     await Future.delayed(const Duration(seconds: 1));
                     _onLoadComplete();
                   },
                   onLoadError: (controller, url, code, message) {
-                    // Even on error, allow proceeding after some time
-                    Future.delayed(const Duration(seconds: 3), () {
-                      _onLoadComplete();
-                    });
+                    Future.delayed(const Duration(seconds: 3), _onLoadComplete);
                   },
                 ),
               ),
 
-              // Bottom button - only when can proceed
               if (_canProceed)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.black,
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF5921E),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                SafeArea(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    color: Colors.black,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF5921E),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        elevation: 0,
-                      ),
-                      onPressed: _proceedToMovie,
-                      child: const Text(
-                        'Xem phim',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        onPressed: _finish,
+                        child: const Text(
+                          'Xem phim',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
