@@ -277,9 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Opacity(
                 opacity: 0.6,
                 child: CachedNetworkImage(
-                  imageUrl: (movie.posterUrl?.isNotEmpty == true)
-                      ? movie.posterUrl!
-                      : (movie.thumbUrl ?? ''),
+                  imageUrl: movie.thumbUrl ?? '',
                   fit: BoxFit.cover,
                   memCacheWidth: 400,
                   cacheKey: '${movie.slug}_${movie.id}_glow',

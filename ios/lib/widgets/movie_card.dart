@@ -58,7 +58,7 @@ class MovieCard extends StatelessWidget {
                     AspectRatio(
                       aspectRatio: 2 / 3,
                       child: CachedNetworkImage(
-                        imageUrl: movie.thumbUrl ?? movie.posterUrl ?? '',
+                        imageUrl: movie.thumbUrl ?? '',
                         fit: BoxFit.cover,
                         memCacheWidth: 280,
                         cacheKey: '${movie.slug}_${movie.id}_thumb', // bust cache khi đổi URL

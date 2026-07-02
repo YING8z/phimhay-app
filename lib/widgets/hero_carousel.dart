@@ -152,9 +152,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
                             child: AspectRatio(
                               aspectRatio: 2 / 3,
                               child: CachedNetworkImage(
-                                imageUrl: (movie.posterUrl?.isNotEmpty == true)
-                                    ? movie.posterUrl!
-                                    : (movie.thumbUrl ?? ''),
+                                imageUrl: movie.thumbUrl ?? '',
                                 fit: BoxFit.cover,
                                 memCacheWidth: 600,
                                 cacheKey:

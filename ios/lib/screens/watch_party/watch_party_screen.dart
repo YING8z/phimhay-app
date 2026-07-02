@@ -381,7 +381,7 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
                 fit: StackFit.expand,
                 children: [
                   CachedNetworkImage(
-                    imageUrl: room['poster_url'] ?? room['thumb_url'] ?? '',
+                    imageUrl: room['thumb_url'] ?? '',
                     fit: BoxFit.cover,
                     errorWidget: (_, __, ___) => Container(
                       color: AppTheme.bgCard,

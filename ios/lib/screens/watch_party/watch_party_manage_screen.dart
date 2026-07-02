@@ -168,7 +168,7 @@ class _WatchPartyManageScreenState extends State<WatchPartyManageScreen> {
     final title = room['title']?.toString() ?? '';
     final epName = room['ep_name']?.toString() ?? '';
     final status = room['status']?.toString() ?? '';
-    final posterUrl = room['thumb_url']?.toString() ?? room['poster_url']?.toString() ?? '';
+    final posterUrl = room['thumb_url']?.toString() ?? '';
     final createdAt = room['created_at']?.toString() ?? '';
     final roomId = room['id'] as int? ?? 0;
 

@@ -133,7 +133,7 @@ class TopRankCard extends StatelessWidget {
                     // Poster image
                     Positioned.fill(
                       child: CachedNetworkImage(
-                        imageUrl: movie.thumbUrl ?? movie.posterUrl ?? '',
+                        imageUrl: movie.thumbUrl ?? '',
                         fit: BoxFit.cover,
                         memCacheWidth: 280,
                         cacheKey: '${movie.slug}_${movie.id}_thumb',
